@@ -1,0 +1,34 @@
+# dependencies
+/node_modules
+
+# next.js / build output
+/.next/
+/out/
+/build
+*.tsbuildinfo
+next-env.d.ts
+
+# test output
+/coverage
+
+# environment files: NEVER commit real credentials
+.env
+.env.*
+!.env.example
+
+# logs and OS files
+npm-debug.log*
+*.log
+.DS_Store
+Thumbs.db
+
+# hosting
+.vercel
+
+# personal notes
+/TODO.txt
+
+# local AI-assistant tooling
+/.agents/
+/.claude/
+skills-lock.json
