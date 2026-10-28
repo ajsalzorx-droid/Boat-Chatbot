@@ -29,6 +29,7 @@ Deployment, Meta setup and the production acceptance test: **[docs/deployment.md
 | Admin dashboard (overview, conversations, FAQs, products, settings, health, simulator) | ✅ | Type-checked; API covered by tests | — | Built and served; API flows exercised. UI not yet reviewed in a browser by a person |
 | Coexistence: app messages (`smb_message_echoes`), history import, staff-first wait and pause | ✅ | ✅ unit + integration | Tech Provider app, Embedded Signup config, webhook fields | **Not yet received from Meta** |
 | Coexistence onboarding page (Embedded Signup, token exchange, sync requests) | ✅ | ✅ unit (mocked Graph API) | `META_APP_ID`, `META_EMBEDDED_SIGNUP_CONFIG_ID` | **Not run against Meta yet** |
+| Product offers (offer price + last day; expired offers are never quoted) and AI-first answer mode | ✅ | ✅ unit | — | Not yet reviewed in a browser |
 | Saved replies in the dashboard | ✅ | Type-checked | — | Not yet reviewed in a browser |
 | Webhook from Meta through a tunnel | ✅ | — | Published Meta app | ✅ Meta's test webhook received and signature-verified (2026-10-27); real phone messages not yet (Meta's test number was not receiving) |
 | MongoDB Atlas connection | ✅ | — | `MONGODB_URI` | ✅ Connected to the development cluster |
