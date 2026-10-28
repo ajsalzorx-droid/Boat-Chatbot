@@ -79,7 +79,14 @@ export function SimulatorClient() {
                 message.direction === "inbound" ? "rounded-br-sm bg-emerald-100 dark:bg-emerald-900/50" : "rounded-bl-sm bg-white dark:bg-slate-800"
               }`}
             >
-              <p className="whitespace-pre-wrap break-words">{message.text ?? `[${message.type}]`}</p>
+              {message.image ? (
+                <figure className="space-y-1">
+                  <img src={message.image.url} alt={message.image.caption} className="max-h-56 rounded-lg object-cover" loading="lazy" />
+                  {message.image.caption ? <figcaption className="whitespace-pre-wrap break-words">{message.image.caption}</figcaption> : null}
+                </figure>
+              ) : (
+                <p className="whitespace-pre-wrap break-words">{message.text ?? `[${message.type}]`}</p>
+              )}
               <p className="mt-1 text-right text-[11px] text-slate-500">
                 {message.direction === "outbound" ? `${message.sender}${message.botSource ? ` · ${message.botSource}` : ""} · ` : ""}
                 {timeAgo(message.createdAt)}

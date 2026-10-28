@@ -13,7 +13,7 @@ import { loadWebsiteProducts } from "./website-db";
 /** CRUD for the trusted knowledge the chatbot answers from: FAQs and products/services. */
 
 export type FaqInput = Pick<FaqDoc, "question" | "answer" | "keywords" | "active">;
-export type ProductInput = Pick<ProductDoc, "kind" | "name" | "description" | "price" | "currency" | "availability" | "keywords" | "offer" | "active">;
+export type ProductInput = Pick<ProductDoc, "kind" | "name" | "description" | "price" | "currency" | "availability" | "keywords" | "offer" | "imageUrl" | "active">;
 
 function notFound(what: string): AppError {
   return new AppError(`${what} not found`, { code: "NOT_FOUND", httpStatus: 404, publicMessage: `${what} not found.` });
@@ -95,6 +95,7 @@ export async function loadKnowledge(): Promise<{ faqs: KnowledgeFaq[]; products:
       keywords: product.keywords,
       // Documents created before offers existed have no field.
       offer: product.offer ?? null,
+      imageUrl: product.imageUrl ?? null,
     }))],
   };
 }

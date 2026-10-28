@@ -7,6 +7,7 @@ import { signMetaPayload } from "@/lib/whatsapp/signature";
 import { Conversation } from "@/models/conversation";
 import { Message } from "@/models/message";
 import { ProcessingJob } from "@/models/processing-job";
+import { Product } from "@/models/product";
 import { WebhookEvent } from "@/models/webhook-event";
 import { updateConversation } from "@/services/conversations/conversation-service";
 import { setChannelSenderForTests } from "@/services/messages/channel-sender";
@@ -258,6 +259,18 @@ describe("conversation rules", () => {
     expect(await Conversation.findOne().lean()).toMatchObject({ status: "needs_human", botEnabled: false });
     await deliver(inboundPayload({ messageId: "wamid.H.2", text: "hello?" }));
     expect(sender.sent).toHaveLength(1);
+  });
+
+  it("sends the photo of a product the reply names after the text, once even on redelivery", async () => {
+    await Product.create({ name: "Grilled Hamour", price: 95, keywords: ["hamour"], imageUrl: "https://img.example.com/hamour.webp" });
+    await deliver(inboundPayload({ messageId: "wamid.P.1", text: "How much is the grilled hamour?" }));
+    expect(sender.sent).toHaveLength(2);
+    expect(sender.sent[0]?.body).toContain("Grilled Hamour");
+    expect(sender.sent[1]).toMatchObject({ image: "https://img.example.com/hamour.webp", body: "Grilled Hamour - 95 AED" });
+    expect(await Message.findOne({ type: "image" }).lean()).toMatchObject({ status: "accepted", media: { url: "https://img.example.com/hamour.webp" } });
+
+    await deliver(inboundPayload({ messageId: "wamid.P.1", text: "How much is the grilled hamour?" }));
+    expect(sender.sent).toHaveLength(2);
   });
 
   it("takes a handed-over chat back when no staff replied within the set minutes", async () => {

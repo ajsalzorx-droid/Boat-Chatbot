@@ -41,6 +41,8 @@ export interface KnowledgeProduct {
   keywords: string[];
   /** Only set while the offer is still valid; the engine drops expired ones. */
   offer: ProductOffer | null;
+  /** Public https photo, sent after a reply that names the product. */
+  imageUrl?: string | null;
 }
 
 /** Trusted company configuration, as approved by administrators. */

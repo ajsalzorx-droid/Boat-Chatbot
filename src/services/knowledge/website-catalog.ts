@@ -16,6 +16,7 @@ export interface WebsiteMenuItem {
   tag?: unknown;
   dietary?: unknown;
   is_active?: unknown;
+  image_url?: unknown;
 }
 
 export interface WebsiteDailyCatch {
@@ -25,6 +26,7 @@ export interface WebsiteDailyCatch {
   description?: unknown;
   price?: unknown;
   is_available?: unknown;
+  image_url?: unknown;
 }
 
 export interface WebsiteOffer {
@@ -51,6 +53,14 @@ export interface WebsiteCatalogInput {
 const str = (value: unknown, max: number) => (typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, max) : "");
 const strings = (value: unknown) => (Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : []);
 const price = (value: unknown) => (typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null);
+/**
+ * WhatsApp accepts only JPEG and PNG images, while the website stores WebP. Cloudinary converts on
+ * the fly when the extension changes, so those links are rewritten to .jpg.
+ */
+const image = (value: unknown) => {
+  if (typeof value !== "string" || !value.startsWith("https://") || value.length > 2000) return null;
+  return /^https:\/\/res\.cloudinary\.com\//.test(value) ? value.replace(/\.(webp|avif)$/i, ".jpg") : value;
+};
 const date = (value: unknown) => {
   const parsed = value instanceof Date ? value : typeof value === "string" ? new Date(value) : null;
   return parsed && !Number.isNaN(parsed.getTime()) ? parsed : null;
@@ -135,6 +145,7 @@ export function mapWebsiteCatalog(input: WebsiteCatalogInput): KnowledgeProduct[
         availability: "available",
         keywords: [category, str(item.tag, 50)].filter(Boolean).map((keyword) => keyword.toLowerCase()),
         offer: null,
+        imageUrl: image(item.image_url),
       },
     });
   }
@@ -158,6 +169,7 @@ export function mapWebsiteCatalog(input: WebsiteCatalogInput): KnowledgeProduct[
         availability: fish.is_available === false ? "out_of_stock" : "available",
         keywords: ["daily catch", "fresh catch", "fresh fish"],
         offer: null,
+        imageUrl: image(fish.image_url),
       },
     });
   }

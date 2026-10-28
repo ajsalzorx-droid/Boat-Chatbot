@@ -6,7 +6,7 @@ import { defineModel } from "./define-model";
 export const MESSAGE_DIRECTIONS = ["inbound", "outbound"] as const;
 export type MessageDirection = (typeof MESSAGE_DIRECTIONS)[number];
 
-export const MESSAGE_TYPES = ["text", "template", "unsupported"] as const;
+export const MESSAGE_TYPES = ["text", "template", "image", "unsupported"] as const;
 export type MessageType = (typeof MESSAGE_TYPES)[number];
 
 /** `business_app`: sent by staff from the WhatsApp Business app on the same number (coexistence). */
@@ -52,6 +52,8 @@ export interface MessageDoc {
   type: MessageType;
   text: string | null;
   template: { name: string; languageCode: string } | null;
+  /** Outbound image: a public https link WhatsApp fetches, and its caption. */
+  media: { url: string; caption: string } | null;
   /** Inbound types the bot does not handle (image, audio, …). */
   originalType: string | null;
   whatsappMessageId: string | null;
@@ -86,6 +88,10 @@ const messageSchema = new Schema<MessageDoc>(
     text: { type: String, default: null, maxlength: 4096 },
     template: {
       type: new Schema({ name: String, languageCode: String }, { _id: false }),
+      default: null,
+    },
+    media: {
+      type: new Schema({ url: { type: String, maxlength: 2000 }, caption: { type: String, maxlength: 1024 } }, { _id: false }),
       default: null,
     },
     originalType: { type: String, default: null, maxlength: 50 },

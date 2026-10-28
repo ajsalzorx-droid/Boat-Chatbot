@@ -81,6 +81,7 @@ export const productSchema = z.object({
     })
     .nullable()
     .default(null),
+  imageUrl: z.union([z.literal("").transform(() => null), z.url().max(2000).startsWith("https://", "Use an https link")]).nullable().default(null),
   active: z.boolean().default(true),
 });
 

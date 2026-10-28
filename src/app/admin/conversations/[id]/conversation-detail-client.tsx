@@ -52,6 +52,11 @@ function MessageBubble({ message, canRetry, onRetry }: { message: MessageDto; ca
         </div>
         {message.type === "template" ? (
           <p className="italic">Template: {message.templateName}</p>
+        ) : message.image ? (
+          <figure className="space-y-1">
+            <img src={message.image.url} alt={message.image.caption} className="max-h-56 rounded-lg object-cover" loading="lazy" />
+            {message.image.caption ? <figcaption className="whitespace-pre-wrap break-words">{message.image.caption}</figcaption> : null}
+          </figure>
         ) : message.type === "unsupported" ? (
           <p className="italic text-slate-500">[{message.originalType} message — not shown]</p>
         ) : (

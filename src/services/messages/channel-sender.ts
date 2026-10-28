@@ -19,6 +19,7 @@ export type SendOutcome = { kind: "sent"; messageId: string } | { kind: "simulat
 export interface ChannelSender {
   sendText(recipient: Recipient, body: string, replyToMessageId: string | null): Promise<SendOutcome>;
   sendTemplate(recipient: Recipient, template: { name: string; languageCode: string }): Promise<SendOutcome>;
+  sendImage(recipient: Recipient, image: { url: string; caption: string }): Promise<SendOutcome>;
 }
 
 function requireWaId(recipient: Recipient): string {
@@ -48,6 +49,11 @@ class WhatsAppSender implements ChannelSender {
     const result = await this.getClient().sendTemplate({ to: requireWaId(recipient), ...template });
     return { kind: "sent", messageId: result.messageId };
   }
+
+  async sendImage(recipient: Recipient, image: { url: string; caption: string }): Promise<SendOutcome> {
+    const result = await this.getClient().sendImage({ to: requireWaId(recipient), link: image.url, caption: image.caption });
+    return { kind: "sent", messageId: result.messageId };
+  }
 }
 
 class SimulatorSender implements ChannelSender {
@@ -56,6 +62,10 @@ class SimulatorSender implements ChannelSender {
   }
 
   sendTemplate(): Promise<SendOutcome> {
+    return Promise.resolve({ kind: "simulated" });
+  }
+
+  sendImage(): Promise<SendOutcome> {
     return Promise.resolve({ kind: "simulated" });
   }
 }

@@ -81,6 +81,7 @@ export interface MessageDto {
   type: MessageDoc["type"];
   text: string | null;
   templateName: string | null;
+  image: { url: string; caption: string } | null;
   originalType: string | null;
   status: MessageDoc["status"];
   error: { code: string; title: string } | null;
@@ -98,6 +99,7 @@ export function toMessageDto(message: MessageDoc): MessageDto {
     type: message.type,
     text: message.text,
     templateName: message.template?.name ?? null,
+    image: message.media ? { url: message.media.url, caption: message.media.caption } : null,
     originalType: message.originalType,
     status: message.status,
     error: message.error ? { code: String(message.error.code), title: message.error.title } : null,
@@ -131,6 +133,7 @@ export interface ProductDto {
   availability: ProductDoc["availability"];
   keywords: string[];
   offer: { price: number; validUntil: string; note: string } | null;
+  imageUrl: string | null;
   active: boolean;
   source: ProductDoc["source"];
   updatedAt: string;
@@ -147,6 +150,7 @@ export function toProductDto(product: ProductDoc): ProductDto {
     availability: product.availability,
     keywords: product.keywords,
     offer: product.offer ? { price: product.offer.price, validUntil: product.offer.validUntil, note: product.offer.note } : null,
+    imageUrl: product.imageUrl ?? null,
     active: product.active,
     source: product.source,
     updatedAt: product.updatedAt.toISOString(),

@@ -32,6 +32,8 @@ export interface ProductDoc {
   availability: Availability;
   keywords: string[];
   offer: ProductOffer | null;
+  /** Public https photo the bot sends after a reply that names this item. */
+  imageUrl: string | null;
   active: boolean;
   source: ProductSource;
   /** Identity in the source ("website:<normalised name>"); null for manual items. */
@@ -64,6 +66,7 @@ const productSchema = new Schema<ProductDoc>(
       ),
       default: null,
     },
+    imageUrl: { type: String, trim: true, maxlength: 2000, match: /^https:\/\//, default: null },
     active: { type: Boolean, default: true },
     source: { type: String, enum: PRODUCT_SOURCES, default: "manual" },
     externalId: { type: String, default: null },

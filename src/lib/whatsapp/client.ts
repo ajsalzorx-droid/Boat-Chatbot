@@ -176,6 +176,17 @@ export class WhatsAppClient {
     });
   }
 
+  /** Image by public https link; WhatsApp downloads it. Captions are limited to 1024 characters. */
+  async sendImage(input: { to: string; link: string; caption: string }): Promise<SendResult> {
+    if (!input.link.startsWith("https://")) {
+      throw new WhatsAppApiError("Image link must be https", {
+        httpStatus: 400, graphCode: null, graphSubcode: null, fbtraceId: null, retryable: false,
+      });
+    }
+    const caption = input.caption.trim().slice(0, 1024);
+    return this.sendMessage(input.to, { type: "image", image: { link: input.link, ...(caption ? { caption } : {}) } });
+  }
+
   async sendTemplate(input: {
     to: string;
     name: string;

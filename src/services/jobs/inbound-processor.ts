@@ -11,10 +11,11 @@ import { getAiProvider } from "@/providers/ai";
 import { generateReply } from "@/services/chatbot/engine";
 import { pick } from "@/services/chatbot/rules";
 import { containsPhrase, detectLanguage, normalize } from "@/services/chatbot/text";
-import type { ChatbotReply, HistoryTurn } from "@/services/chatbot/types";
+import { productImagesForReply } from "@/services/chatbot/product-images";
+import type { ChatbotReply, HistoryTurn, KnowledgeProduct } from "@/services/chatbot/types";
 import { requestHandoff, setOptOut } from "@/services/conversations/conversation-service";
 import { loadKnowledge } from "@/services/knowledge/knowledge-service";
-import { createOutboundMessage, deliverOutboundMessage } from "@/services/messages/outbound-service";
+import { createOutboundMessage, deliverOutboundMessage, RetryableDeliveryError } from "@/services/messages/outbound-service";
 import { getSettings, toBotSettings } from "@/services/settings/settings-service";
 
 /**
@@ -90,6 +91,32 @@ async function deliver(message: MessageDoc): Promise<InboundOutcome> {
   return result.status === "failed" ? "reply_failed" : "replied";
 }
 
+function imageReplyKey(replyKey: string, productId: string): string {
+  return `${replyKey}:img:${productId}`;
+}
+
+/**
+ * Delivers the text reply, then any product photos prepared with it (also on a retry). A photo
+ * that WhatsApp refuses is logged and skipped: the text answer already reached the customer.
+ */
+async function deliverReply(message: MessageDoc, replyKey: string): Promise<InboundOutcome> {
+  const outcome = await deliver(message);
+  if (outcome === "reply_failed") return outcome;
+  const prefix = `${replyKey}:img:`.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const images = await Message.find({ conversationId: message.conversationId, botReplyTo: { $regex: `^${prefix}` }, status: "pending" })
+    .sort({ _id: 1 })
+    .lean();
+  for (const image of images) {
+    try {
+      await deliverOutboundMessage(image._id);
+    } catch (error) {
+      if (error instanceof RetryableDeliveryError) throw error;
+      logger.warn("inbound.product_image_failed", { messageId: image._id.toString(), error });
+    }
+  }
+  return outcome;
+}
+
 export async function processInboundMessage(messageId: Types.ObjectId): Promise<InboundOutcome> {
   const inbound = await Message.findById(messageId).lean();
   if (!inbound || inbound.direction !== "inbound") throw new Error("Inbound message not found");
@@ -97,7 +124,7 @@ export async function processInboundMessage(messageId: Types.ObjectId): Promise<
 
   // Retry path: a reply record already exists, so only (re)deliver it.
   const existingReply = await Message.findOne({ botReplyTo: replyKey }).lean();
-  if (existingReply) return deliver(existingReply);
+  if (existingReply) return deliverReply(existingReply, replyKey);
 
   let conversation = await Conversation.findById(inbound.conversationId).lean();
   if (!conversation) throw new Error("Conversation not found for inbound message");
@@ -163,10 +190,12 @@ export async function processInboundMessage(messageId: Types.ObjectId): Promise<
   }
 
   let reply: ChatbotReply;
+  let products: KnowledgeProduct[] = [];
   if (inbound.type !== "text") {
     reply = { text: unsupportedReply(language), intent: "fallback", source: "rules", handoff: false, language, aiModel: null };
   } else {
     const knowledge = await loadKnowledge();
+    products = knowledge.products;
     // Per-customer AI budget: a flooding sender still gets rule/FAQ replies, but cannot run up AI cost.
     const aiBudget = await consumeRateLimit("ai-per-conversation", conversation._id.toString(), AI_CALLS_PER_WINDOW, AI_WINDOW_SECONDS);
     if (!aiBudget.allowed) log.warn("inbound.ai_rate_limited");
@@ -191,6 +220,17 @@ export async function processInboundMessage(messageId: Types.ObjectId): Promise<
     botMeta: { source: reply.source, intent: reply.intent, aiModel: reply.aiModel },
   });
   if (created && reply.handoff) await requestHandoff(conversation._id);
-  log.info("inbound.reply_prepared", { source: reply.source, intent: reply.intent, handoff: reply.handoff });
-  return deliver(message);
+  // Photos of the products the reply names follow it as separate messages.
+  const images = created && !reply.handoff ? productImagesForReply(reply.text, products) : [];
+  for (const image of images) {
+    await createOutboundMessage({
+      conversation,
+      sender: "bot",
+      image: { url: image.url, caption: image.caption },
+      botReplyTo: imageReplyKey(replyKey, image.productId),
+      botMeta: { source: reply.source, intent: "product_image", aiModel: null },
+    });
+  }
+  log.info("inbound.reply_prepared", { source: reply.source, intent: reply.intent, handoff: reply.handoff, images: images.length });
+  return deliverReply(message, replyKey);
 }

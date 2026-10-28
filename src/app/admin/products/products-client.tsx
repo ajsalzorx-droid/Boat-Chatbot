@@ -21,10 +21,11 @@ interface Draft {
   offerPrice: string;
   offerUntil: string;
   offerNote: string;
+  imageUrl: string;
   active: boolean;
 }
 
-const EMPTY: Draft = { id: null, kind: "product", name: "", description: "", price: "", currency: "AED", availability: "available", keywords: "", offerPrice: "", offerUntil: "", offerNote: "", active: true };
+const EMPTY: Draft = { id: null, kind: "product", name: "", description: "", price: "", currency: "AED", availability: "available", keywords: "", offerPrice: "", offerUntil: "", offerNote: "", imageUrl: "", active: true };
 
 const AVAILABILITY_LABEL: Record<ProductDto["availability"], string> = {
   available: "Available",
@@ -92,6 +93,7 @@ export function ProductsClient() {
       availability: draft.availability,
       keywords: draft.keywords.split(",").map((keyword) => keyword.trim()).filter(Boolean),
       offer: offerPrice === null ? null : { price: offerPrice, validUntil: draft.offerUntil, note: draft.offerNote },
+      imageUrl: draft.imageUrl.trim() === "" ? null : draft.imageUrl.trim(),
       active: draft.active,
     };
     try {
@@ -201,6 +203,11 @@ export function ProductsClient() {
               </Field>
             </div>
             <div className="md:col-span-2">
+              <Field label="Photo link" hint="Optional public https image link. The bot sends this photo when its reply names the item.">
+                <Input type="url" maxLength={2000} placeholder="https://…" value={draft.imageUrl} onChange={(event) => setDraft({ ...draft, imageUrl: event.target.value })} />
+              </Field>
+            </div>
+            <div className="md:col-span-2">
               <Checkbox label="Active (used by the bot)" checked={draft.active} onChange={(active) => setDraft({ ...draft, active })} />
             </div>
             <div className="flex gap-2 md:col-span-2">
@@ -296,6 +303,7 @@ export function ProductsClient() {
                           offerPrice: product.offer ? String(product.offer.price) : "",
                           offerUntil: product.offer?.validUntil ?? "",
                           offerNote: product.offer?.note ?? "",
+                          imageUrl: product.imageUrl ?? "",
                           active: product.active,
                         })
                       }

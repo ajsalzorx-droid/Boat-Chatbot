@@ -44,6 +44,7 @@ export interface OutboundDraft {
   sender: MessageSender;
   text?: string;
   template?: { name: string; languageCode: string };
+  image?: { url: string; caption: string };
   agentId?: Types.ObjectId | null;
   botReplyTo?: string | null;
   clientRequestId?: string | null;
@@ -60,9 +61,10 @@ export async function createOutboundMessage(draft: OutboundDraft): Promise<{ mes
       direction: "outbound",
       sender: draft.sender,
       agentId: draft.agentId ?? null,
-      type: draft.template ? "template" : "text",
+      type: draft.template ? "template" : draft.image ? "image" : "text",
       text: draft.text ?? null,
       template: draft.template ?? null,
+      media: draft.image ?? null,
       botReplyTo: draft.botReplyTo ?? null,
       clientRequestId: draft.clientRequestId ?? null,
       status: "pending",
@@ -111,7 +113,9 @@ export async function deliverOutboundMessage(messageId: Types.ObjectId): Promise
   try {
     const outcome = claimed.template
       ? await sender.sendTemplate(recipient, claimed.template)
-      : await sender.sendText(recipient, claimed.text ?? "", null);
+      : claimed.media
+        ? await sender.sendImage(recipient, claimed.media)
+        : await sender.sendText(recipient, claimed.text ?? "", null);
 
     const now = new Date();
     const update =
@@ -119,7 +123,8 @@ export async function deliverOutboundMessage(messageId: Types.ObjectId): Promise
         ? { status: "accepted", whatsappMessageId: outcome.messageId, "statusTimestamps.acceptedAt": now }
         : { status: "simulated", "statusTimestamps.acceptedAt": now };
     const saved = await Message.findOneAndUpdate({ _id: claimed._id }, { $set: update }, { returnDocument: "after", lean: true });
-    await recordOutboundOnConversation(conversation._id, previewOf(claimed.text, `Template: ${claimed.template?.name ?? ""}`), now);
+    const fallbackPreview = claimed.media ? `📷 ${claimed.media.caption}` : `Template: ${claimed.template?.name ?? ""}`;
+    await recordOutboundOnConversation(conversation._id, previewOf(claimed.text, fallbackPreview), now);
     log.info("outbound.accepted", { simulated: outcome.kind === "simulated" });
     return saved ?? claimed;
   } catch (error) {

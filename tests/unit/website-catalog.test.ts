@@ -7,7 +7,7 @@ const NOW = new Date("2026-10-26T10:00:00.000Z");
 function input(overrides: Partial<WebsiteCatalogInput> = {}): WebsiteCatalogInput {
   return {
     menuItems: [
-      { _id: "a1", name: "Crispy Calamari", description: "Squid rings.", price: 75, category: "Appetizers", tag: "Classic", dietary: ["Spicy"], is_active: true },
+      { _id: "a1", name: "Crispy Calamari", description: "Squid rings.", price: 75, category: "Appetizers", tag: "Classic", dietary: ["Spicy"], is_active: true, image_url: "https://res.cloudinary.com/demo/image/upload/v1/menu/calamari.webp" },
       { _id: "a2", name: "Crispy  calamari", description: "Duplicate copy.", price: 75, category: "Appetizers", is_active: true },
       { _id: "b1", name: "Lobster", price: 245, category: "Signature Dishes", is_active: true },
       { _id: "c1", name: "Hidden dish", price: 10, category: "Desserts", is_active: false },
@@ -26,6 +26,9 @@ describe("mapWebsiteCatalog", () => {
     const products = mapWebsiteCatalog(input());
     expect(products.map((product) => product.name)).toEqual(["Crispy Calamari", "Lobster", "Sea Bream"]);
     expect(products[0]).toMatchObject({ id: "website:a1", price: 75, currency: "AED", availability: "available", keywords: ["appetizers", "classic"], description: "Squid rings. Dietary: Spicy.", offer: null });
+    // WhatsApp only takes JPEG/PNG; Cloudinary converts by extension.
+    expect(products[0]?.imageUrl).toBe("https://res.cloudinary.com/demo/image/upload/v1/menu/calamari.jpg");
+    expect(products[1]?.imageUrl).toBeNull();
     expect(products[2]).toMatchObject({ availability: "out_of_stock", keywords: ["daily catch", "fresh catch", "fresh fish"], description: "Whole. Origin: Greece. Part of today's fresh catch." });
   });
 

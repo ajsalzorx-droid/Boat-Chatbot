@@ -148,7 +148,7 @@ export function historyPayload(options: { customer?: string; messages: { id: str
 
 /** Records every send and returns predictable message IDs; can be told to fail. */
 export class FakeSender implements ChannelSender {
-  sent: { to: string | null; body: string | null; template: string | null }[] = [];
+  sent: { to: string | null; body: string | null; template: string | null; image?: string }[] = [];
   private counter = 0;
   failWith: Error | null = null;
 
@@ -162,6 +162,13 @@ export class FakeSender implements ChannelSender {
   sendTemplate(recipient: { waId: string | null }, template: { name: string }): Promise<SendOutcome> {
     if (this.failWith) return Promise.reject(this.failWith);
     this.sent.push({ to: recipient.waId, body: null, template: template.name });
+    this.counter += 1;
+    return Promise.resolve({ kind: "sent", messageId: `wamid.OUT.${this.counter}` });
+  }
+
+  sendImage(recipient: { waId: string | null }, image: { url: string; caption: string }): Promise<SendOutcome> {
+    if (this.failWith) return Promise.reject(this.failWith);
+    this.sent.push({ to: recipient.waId, body: image.caption, template: null, image: image.url });
     this.counter += 1;
     return Promise.resolve({ kind: "sent", messageId: `wamid.OUT.${this.counter}` });
   }
