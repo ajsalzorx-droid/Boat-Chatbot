@@ -5,7 +5,7 @@ import { generateReply, type EngineDependencies } from "@/services/chatbot/engin
 import { checkModelOutput } from "@/services/chatbot/prompt";
 import type { ChatbotInput } from "@/services/chatbot/types";
 
-import { knowledge } from "../helpers/fixtures";
+import { botSettings, knowledge } from "../helpers/fixtures";
 
 // Tuesday 2026-10-13 14:00 in Dubai (UTC+4): open.
 const OPEN_TIME = new Date("2026-10-13T10:00:00Z");
@@ -241,4 +241,27 @@ vi.mock("@/lib/logging/logger", () => {
   const noop = () => undefined;
   const log = { debug: noop, info: noop, warn: noop, error: noop, child: () => log };
   return { logger: log };
+});
+
+describe("menu link", () => {
+  const withMenu = () => knowledge({ settings: botSettings({ menuUrl: "https://desertbloom.example.com/menu" }) });
+
+  it("adds the menu link when the customer asks for the menu, on rule and AI answers alike", async () => {
+    const rules = await generateReply(input("can you send the menu?"), withMenu(), noAi);
+    expect(rules.text).toContain("📋 Full menu: https://desertbloom.example.com/menu");
+
+    const ai = fakeAi(() => Promise.resolve("We have red roses for 199 AED."));
+    const aiReply = await generateReply(input("what's on your menu"), withMenu(), { ai: { provider: ai.provider, timeoutMs: 1000 }, maxHistoryMessages: 10 });
+    expect(aiReply).toMatchObject({ source: "ai" });
+    expect(aiReply.text).toMatch(/199 AED\.\n\n📋 Full menu: https:\/\/desertbloom\.example\.com\/menu$/);
+    expect(ai.calls[0]?.system).toContain("Full menu: https://desertbloom.example.com/menu");
+  });
+
+  it("does not repeat a link the answer already has, and stays out of other answers", async () => {
+    const ai = fakeAi(() => Promise.resolve("See our menu at https://desertbloom.example.com/menu"));
+    const aiReply = await generateReply(input("menu please"), withMenu(), { ai: { provider: ai.provider, timeoutMs: 1000 }, maxHistoryMessages: 10 });
+    expect(aiReply.text.split("https://desertbloom.example.com/menu")).toHaveLength(2);
+    expect((await generateReply(input("Hi"), withMenu(), noAi)).text).not.toContain("/menu");
+    expect((await generateReply(input("menu"), knowledge(), noAi)).text).not.toContain("📋");
+  });
 });

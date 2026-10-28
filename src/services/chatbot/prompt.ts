@@ -46,6 +46,7 @@ export function buildSystemPrompt(
       settings.address && `Address: ${settings.address}`,
       settings.mapsUrl && `Map: ${settings.mapsUrl}`,
       settings.websiteUrl && `Website: ${settings.websiteUrl}`,
+      settings.menuUrl && `Full menu: ${settings.menuUrl} (when the customer asks for the menu, list a few popular items with prices and also give this link)`,
       settings.instagramUrl && `Instagram: ${settings.instagramUrl}`,
       `Human support: ${support}${settings.humanSupport.hoursNote ? ` (${settings.humanSupport.hoursNote})` : ""}`,
       `Opening hours (${settings.timezone}):\n${hours}`,

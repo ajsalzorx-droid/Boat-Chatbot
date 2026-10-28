@@ -128,6 +128,9 @@ export function SettingsClient() {
           <Field label="Website URL">
             <Input type="url" value={settings.websiteUrl} onChange={(event) => set("websiteUrl", event.target.value)} />
           </Field>
+          <Field label="Menu link" hint="Shared by the bot whenever a customer asks for the menu">
+            <Input type="url" value={settings.menuUrl} onChange={(event) => set("menuUrl", event.target.value)} />
+          </Field>
           <Field label="Address">
             <Textarea className="min-h-16" value={settings.address} maxLength={500} onChange={(event) => set("address", event.target.value)} />
           </Field>

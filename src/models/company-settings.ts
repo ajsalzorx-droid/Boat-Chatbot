@@ -37,6 +37,8 @@ export interface CompanySettingsDoc {
   businessWhatsAppNumber: string;
   instagramUrl: string;
   websiteUrl: string;
+  /** Online menu or catalogue; the bot adds it whenever a customer asks for the menu. */
+  menuUrl: string;
   address: string;
   mapsUrl: string;
   timezone: string;
@@ -119,6 +121,7 @@ const companySettingsSchema = new Schema<CompanySettingsDoc>(
     businessWhatsAppNumber: { type: String, trim: true, maxlength: 20, default: "" },
     instagramUrl: { type: String, trim: true, maxlength: 300, default: "" },
     websiteUrl: { type: String, trim: true, maxlength: 300, default: "" },
+    menuUrl: { type: String, trim: true, maxlength: 300, default: "" },
     address: { type: String, trim: true, maxlength: 500, default: "" },
     mapsUrl: { type: String, trim: true, maxlength: 500, default: "" },
     timezone: { type: String, trim: true, default: "Asia/Dubai" },

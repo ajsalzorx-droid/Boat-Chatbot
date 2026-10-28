@@ -96,6 +96,7 @@ export const settingsSchema = z.object({
   businessWhatsAppNumber: z.union([z.literal(""), z.string().trim().regex(/^\+?\d{6,15}$/, "Digits with country code")]),
   instagramUrl: optionalUrl,
   websiteUrl: optionalUrl,
+  menuUrl: optionalUrl,
   address: trimmed(500),
   mapsUrl: optionalUrl,
   timezone: z.string().refine((value) => {

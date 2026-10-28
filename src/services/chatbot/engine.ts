@@ -11,6 +11,7 @@ import {
   hoursReply,
   injectionReply,
   isInjectionAttempt,
+  isMenuRequest,
   locationReply,
   offersReply,
   pick,
@@ -166,7 +167,21 @@ async function aiReply(
   }
 }
 
+/** A menu request always gets the menu link, whichever path produced the answer. */
+function withMenuLink(result: ChatbotReply, input: ChatbotInput, settings: Knowledge["settings"]): ChatbotReply {
+  const url = settings.menuUrl;
+  if (!url || result.handoff || result.intent === "injection" || !isMenuRequest(input.text) || result.text.includes(url)) return result;
+  const line = result.language === "ar" ? `📋 القائمة الكاملة: ${url}` : `📋 Full menu: ${url}`;
+  return { ...result, text: `${result.text}
+
+${line}` };
+}
+
 export async function generateReply(input: ChatbotInput, stored: Knowledge, deps: EngineDependencies): Promise<ChatbotReply> {
+  return withMenuLink(await composeReply(input, stored, deps), input, stored.settings);
+}
+
+async function composeReply(input: ChatbotInput, stored: Knowledge, deps: EngineDependencies): Promise<ChatbotReply> {
   const language = detectLanguage(input.text);
   const maxLength = stored.settings.maxResponseLength;
   // Expired offers are removed once, so neither rules nor the AI (nor the price check) can use them.

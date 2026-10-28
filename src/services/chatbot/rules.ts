@@ -18,6 +18,7 @@ const HUMAN = [
 const HOURS = ["hours", "opening", "open", "close", "closing", "timing", "timings", "working hours", "دوام", "ساعات", "متى تفتحون", "مفتوح"];
 const LOCATION = ["address", "location", "where", "located", "map", "directions", "branch", "عنوان", "موقع", "وين", "فرع"];
 const CONTACT = ["contact", "phone", "call", "email", "number", "website", "instagram", "رقم", "تواصل", "ايميل"];
+const MENU = ["menu", "menus", "menu card", "price list", "catalog", "catalogue", "what do you have", "what do you serve", "dishes", "قائمه", "قائمه الطعام", "منيو", "المنيو", "الاسعار"];
 const OFFERS = ["offer", "offers", "discount", "discounts", "deal", "deals", "sale", "promo", "promotion", "promotions", "عرض", "عروض", "خصم", "تخفيض", "تخفيضات"];
 
 /** Obvious attempts to manipulate the bot or extract hidden instructions or secrets. */
@@ -38,6 +39,10 @@ export function pick(text: LocalizedText, language: Language): string {
 
 export function isInjectionAttempt(text: string): boolean {
   return INJECTION_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+export function isMenuRequest(text: string): boolean {
+  return containsPhrase(text, MENU);
 }
 
 export function detectSimpleIntent(text: string): Intent | null {

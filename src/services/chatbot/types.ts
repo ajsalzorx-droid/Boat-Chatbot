@@ -52,6 +52,7 @@ export interface BotSettings {
   address: string;
   mapsUrl: string;
   websiteUrl: string;
+  menuUrl: string;
   instagramUrl: string;
   timezone: string;
   businessHours: DaySchedule[];

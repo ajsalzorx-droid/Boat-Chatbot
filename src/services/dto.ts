@@ -170,6 +170,7 @@ export function toSettingsDto(settings: CompanySettingsDoc): SettingsDto {
     businessWhatsAppNumber: settings.businessWhatsAppNumber,
     instagramUrl: settings.instagramUrl,
     websiteUrl: settings.websiteUrl,
+    menuUrl: settings.menuUrl,
     address: settings.address,
     mapsUrl: settings.mapsUrl,
     timezone: settings.timezone,

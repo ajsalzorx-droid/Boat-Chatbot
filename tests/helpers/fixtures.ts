@@ -186,6 +186,7 @@ export function botSettings(overrides: Partial<BotSettings> = {}): BotSettings {
     address: "Shop 12, Marina Walk, Dubai",
     mapsUrl: "https://maps.example.com/desert-bloom",
     websiteUrl: "https://desertbloom.example.com",
+    menuUrl: "",
     instagramUrl: "https://instagram.com/desertbloom",
     timezone: "Asia/Dubai",
     businessHours: [0, 1, 2, 3, 4, 5, 6].map((day) => ({ day, closed: day === 5, open: "09:00", close: "21:00" })),

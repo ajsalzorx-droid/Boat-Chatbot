@@ -16,6 +16,7 @@ export const DEFAULT_SETTINGS: SettingsData = {
   businessWhatsAppNumber: "",
   instagramUrl: "",
   websiteUrl: "",
+  menuUrl: "",
   address: "",
   mapsUrl: "",
   timezone: "Asia/Dubai",
@@ -66,10 +67,11 @@ export const DEFAULT_SETTINGS: SettingsData = {
 
 /** Documents created before a setting existed lack it; lean reads do not apply schema defaults. */
 function withDefaults(settings: CompanySettingsDoc): CompanySettingsDoc {
-  const stored: Partial<Pick<CompanySettingsDoc, "humanFirst" | "handoffResumeMinutes" | "offerAlerts" | "savedReplies">> = settings;
+  const stored: Partial<Pick<CompanySettingsDoc, "menuUrl" | "humanFirst" | "handoffResumeMinutes" | "offerAlerts" | "savedReplies">> = settings;
   return {
     ...settings,
     ai: { ...DEFAULT_SETTINGS.ai, ...settings.ai },
+    menuUrl: stored.menuUrl ?? DEFAULT_SETTINGS.menuUrl,
     humanFirst: stored.humanFirst ?? DEFAULT_SETTINGS.humanFirst,
     handoffResumeMinutes: stored.handoffResumeMinutes ?? DEFAULT_SETTINGS.handoffResumeMinutes,
     offerAlerts: stored.offerAlerts ?? DEFAULT_SETTINGS.offerAlerts,
@@ -107,6 +109,7 @@ export function toBotSettings(settings: CompanySettingsDoc): BotSettings {
     address: settings.address,
     mapsUrl: settings.mapsUrl,
     websiteUrl: settings.websiteUrl,
+    menuUrl: settings.menuUrl,
     instagramUrl: settings.instagramUrl,
     timezone: settings.timezone,
     businessHours: settings.businessHours,
