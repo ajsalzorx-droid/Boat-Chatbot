@@ -5,7 +5,8 @@ import { useState, type SubmitEvent } from "react";
 import { Badge, Button, Card, Checkbox, EmptyState, ErrorBanner, Field, Input, PageHeader, Select, Textarea } from "@/components/ui";
 import { api, errorMessage } from "@/lib/client/api";
 import { usePolling } from "@/lib/client/use-polling";
-import type { ProductDto } from "@/services/dto";
+import type { ProductDto, SettingsDto } from "@/services/dto";
+import type { WebsiteSyncReport } from "@/services/knowledge/website-sync";
 
 interface Draft {
   id: string | null;
@@ -35,6 +36,37 @@ export function ProductsClient() {
   const { data, error, refresh } = usePolling<{ items: ProductDto[] }>("/api/admin/products", 60_000);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [syncUrl, setSyncUrl] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncReport, setSyncReport] = useState<WebsiteSyncReport | null>(null);
+
+  async function openSync() {
+    setActionError(null);
+    setSyncReport(null);
+    try {
+      const { settings } = await api<{ settings: SettingsDto }>("/api/admin/settings");
+      setSyncUrl(settings.websiteUrl ? `${settings.websiteUrl.replace(/\/+$/, "")}/menu` : "");
+    } catch (caught) {
+      setActionError(errorMessage(caught));
+    }
+  }
+
+  async function sync(event: SubmitEvent) {
+    event.preventDefault();
+    if (syncUrl === null) return;
+    setActionError(null);
+    setSyncing(true);
+    try {
+      const { report } = await api<{ report: WebsiteSyncReport }>("/api/admin/products/sync", { method: "POST", body: { url: syncUrl } });
+      setSyncReport(report);
+      setSyncUrl(null);
+      await refresh();
+    } catch (caught) {
+      setActionError(errorMessage(caught));
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   async function save(event: SubmitEvent) {
     event.preventDefault();
@@ -85,9 +117,41 @@ export function ProductsClient() {
       <PageHeader
         title="Products & services"
         description="Verified information the bot may share. It never quotes a price that is not listed here."
-        actions={<Button onClick={() => setDraft(EMPTY)}>Add item</Button>}
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => void openSync()}>
+              Sync from website
+            </Button>
+            <Button onClick={() => setDraft(EMPTY)}>Add item</Button>
+          </>
+        }
       />
       <ErrorBanner message={error ?? actionError} />
+
+      {syncUrl !== null ? (
+        <Card className="mb-4">
+          <form onSubmit={(event) => void sync(event)} className="grid gap-3">
+            <Field label="Menu or products page" hint="A page on the website saved in Settings. Prices, names and descriptions are copied from it; run the sync again after changing the website.">
+              <Input type="url" required placeholder="https://example.com/menu" value={syncUrl} onChange={(event) => setSyncUrl(event.target.value)} />
+            </Field>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={syncing}>
+                {syncing ? "Syncing…" : "Sync now"}
+              </Button>
+              <Button variant="secondary" onClick={() => setSyncUrl(null)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </Card>
+      ) : null}
+
+      {syncReport ? (
+        <Card className="mb-4 text-sm">
+          Found {syncReport.found} items on the website: {syncReport.created} added, {syncReport.updated} updated
+          {syncReport.deactivated > 0 ? `, ${syncReport.deactivated} no longer listed (set inactive)` : ""}.
+        </Card>
+      ) : null}
 
       {draft ? (
         <Card className="mb-4">
@@ -166,7 +230,10 @@ export function ProductsClient() {
                 <tr key={product.id}>
                   <td className="px-4 py-2">
                     <p className="font-medium">{product.name}</p>
-                    <p className="text-xs capitalize text-slate-500">{product.kind}</p>
+                    <p className="text-xs capitalize text-slate-500">
+                      {product.kind}
+                      {product.source === "website" ? " · from website" : ""}
+                    </p>
                   </td>
                   <td className="px-4 py-2">{product.price === null ? <span className="text-slate-500">Not published</span> : `${product.price} ${product.currency}`}
                     {product.offer ? (

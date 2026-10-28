@@ -8,6 +8,10 @@ export type ProductKind = (typeof PRODUCT_KINDS)[number];
 export const AVAILABILITY = ["available", "out_of_stock", "on_request", "discontinued"] as const;
 export type Availability = (typeof AVAILABILITY)[number];
 
+/** "manual": added in the dashboard. "website": imported and kept up to date by the website sync. */
+export const PRODUCT_SOURCES = ["manual", "website"] as const;
+export type ProductSource = (typeof PRODUCT_SOURCES)[number];
+
 /** A special price. The bot mentions it only up to and including `validUntil` (company timezone). */
 export interface ProductOffer {
   price: number;
@@ -29,6 +33,9 @@ export interface ProductDoc {
   keywords: string[];
   offer: ProductOffer | null;
   active: boolean;
+  source: ProductSource;
+  /** Identity in the source ("website:<normalised name>"); null for manual items. */
+  externalId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -58,10 +65,13 @@ const productSchema = new Schema<ProductDoc>(
       default: null,
     },
     active: { type: Boolean, default: true },
+    source: { type: String, enum: PRODUCT_SOURCES, default: "manual" },
+    externalId: { type: String, default: null },
   },
   { timestamps: true },
 );
 
 productSchema.index({ active: 1, name: 1 });
+productSchema.index({ externalId: 1 }, { unique: true, partialFilterExpression: { externalId: { $type: "string" } } });
 
 export const Product = defineModel<ProductDoc>("Product", productSchema);

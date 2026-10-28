@@ -132,6 +132,7 @@ export interface ProductDto {
   keywords: string[];
   offer: { price: number; validUntil: string; note: string } | null;
   active: boolean;
+  source: ProductDoc["source"];
   updatedAt: string;
 }
 
@@ -147,6 +148,7 @@ export function toProductDto(product: ProductDoc): ProductDto {
     keywords: product.keywords,
     offer: product.offer ? { price: product.offer.price, validUntil: product.offer.validUntil, note: product.offer.note } : null,
     active: product.active,
+    source: product.source,
     updatedAt: product.updatedAt.toISOString(),
   };
 }
