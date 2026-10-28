@@ -249,6 +249,11 @@ export async function updateConversation(id: Types.ObjectId, update: Conversatio
       set.handoffRequestedAt = new Date();
       set.botEnabled = false;
     }
+    // A resolved chat starts fresh: the bot answers the customer's next message again.
+    if (update.status === "resolved") {
+      set.handoffRequestedAt = null;
+      set.botEnabled = true;
+    }
   }
   if (update.botEnabled !== undefined) {
     set.botEnabled = update.botEnabled;

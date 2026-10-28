@@ -8,6 +8,7 @@ import { Conversation } from "@/models/conversation";
 import { Message } from "@/models/message";
 import { ProcessingJob } from "@/models/processing-job";
 import { WebhookEvent } from "@/models/webhook-event";
+import { updateConversation } from "@/services/conversations/conversation-service";
 import { setChannelSenderForTests } from "@/services/messages/channel-sender";
 import { sendAgentReply } from "@/services/messages/outbound-service";
 import { requeueJob } from "@/services/jobs/job-service";
@@ -257,6 +258,15 @@ describe("conversation rules", () => {
     expect(await Conversation.findOne().lean()).toMatchObject({ status: "needs_human", botEnabled: false });
     await deliver(inboundPayload({ messageId: "wamid.H.2", text: "hello?" }));
     expect(sender.sent).toHaveLength(1);
+  });
+
+  it("answers again once staff mark the handed-over chat resolved", async () => {
+    await deliver(inboundPayload({ messageId: "wamid.R.1", text: "I want to speak to a real person" }));
+    const conversation = await Conversation.findOne().lean();
+    await updateConversation(conversation!._id, { status: "resolved" });
+    expect(await Conversation.findOne().lean()).toMatchObject({ status: "resolved", botEnabled: true, handoffRequestedAt: null });
+    await deliver(inboundPayload({ messageId: "wamid.R.2", text: "Hi" }));
+    expect(sender.sent).toHaveLength(2);
   });
 
   it("does not reply when the bot is switched off globally", async () => {
