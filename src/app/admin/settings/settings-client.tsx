@@ -274,6 +274,18 @@ export function SettingsClient() {
           <Field label="Availability note" hint="e.g. 'Staff reply within 1 hour during opening hours'">
             <Input value={settings.humanSupport.hoursNote} onChange={(event) => set("humanSupport", { ...settings.humanSupport, hoursNote: event.target.value })} />
           </Field>
+          <Field
+            label="Bot answers again after a handover (minutes)"
+            hint="When a chat is handed to staff and nobody replies within this time, the bot answers the customer's next message. 0 = only after Resume bot or Mark resolved."
+          >
+            <Input
+              type="number"
+              min={0}
+              max={10080}
+              value={settings.handoffResumeMinutes}
+              onChange={(event) => set("handoffResumeMinutes", Number(event.target.value))}
+            />
+          </Field>
         </Section>
 
         <Section title="Automatic messages" description="English is required; Arabic is used when the customer writes in Arabic.">

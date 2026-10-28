@@ -260,6 +260,30 @@ describe("conversation rules", () => {
     expect(sender.sent).toHaveLength(1);
   });
 
+  it("takes a handed-over chat back when no staff replied within the set minutes", async () => {
+    await updateSettings({ handoffResumeMinutes: 10 });
+    await deliver(inboundPayload({ messageId: "wamid.T.1", text: "I want to speak to a real person" }));
+    // Within 10 minutes: still with staff.
+    await deliver(inboundPayload({ messageId: "wamid.T.2", text: "hello?" }));
+    expect(sender.sent).toHaveLength(1);
+
+    await Conversation.updateOne({}, { $set: { handoffRequestedAt: new Date(Date.now() - 11 * 60_000) } });
+    await deliver(inboundPayload({ messageId: "wamid.T.3", text: "Hi" }));
+    expect(sender.sent).toHaveLength(2);
+    expect(await Conversation.findOne().lean()).toMatchObject({ status: "open", botEnabled: true, handoffRequestedAt: null });
+  });
+
+  it("keeps a handed-over chat with staff once staff replied", async () => {
+    await updateSettings({ handoffResumeMinutes: 10 });
+    await deliver(inboundPayload({ messageId: "wamid.S.1", text: "I want to speak to a real person" }));
+    await Conversation.updateOne({}, { $set: { handoffRequestedAt: new Date(Date.now() - 11 * 60_000) } });
+    const conversation = (await Conversation.findOne().lean())!;
+    await sendAgentReply({ conversation, agentId: conversation._id, text: "Hi, this is Sara.", clientRequestId: "44444444-4444-4444-8444-444444444444" });
+    const sentBefore = sender.sent.length;
+    await deliver(inboundPayload({ messageId: "wamid.S.2", text: "Thanks" }));
+    expect(sender.sent).toHaveLength(sentBefore);
+  });
+
   it("answers again once staff mark the handed-over chat resolved", async () => {
     await deliver(inboundPayload({ messageId: "wamid.R.1", text: "I want to speak to a real person" }));
     const conversation = await Conversation.findOne().lean();

@@ -138,6 +138,7 @@ export const settingsSchema = z.object({
     waitSeconds: z.number().int().min(0).max(120),
     pauseMinutes: z.number().int().min(0).max(1440),
   }),
+  handoffResumeMinutes: z.number().int().min(0).max(10080),
   savedReplies: z.array(z.object({ title: z.string().trim().min(1).max(60), text: z.string().trim().min(1).max(4096) })).max(50),
 });
 

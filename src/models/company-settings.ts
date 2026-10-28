@@ -70,6 +70,11 @@ export interface CompanySettingsDoc {
    * staff reply it pauses for that customer for `pauseMinutes`.
    */
   humanFirst: { enabled: boolean; waitSeconds: number; pauseMinutes: number };
+  /**
+   * After a handover the bot is silent for that customer. When no staff member has replied this
+   * many minutes after the handover, the bot answers the customer's next message again. 0 = never.
+   */
+  handoffResumeMinutes: number;
   /** Ready-made texts staff can insert when replying from the dashboard. */
   savedReplies: SavedReply[];
   createdAt: Date;
@@ -167,6 +172,7 @@ const companySettingsSchema = new Schema<CompanySettingsDoc>(
       waitSeconds: { type: Number, min: 0, max: 120, default: 15 },
       pauseMinutes: { type: Number, min: 0, max: 1440, default: 30 },
     },
+    handoffResumeMinutes: { type: Number, min: 0, max: 10080, default: 10 },
     savedReplies: {
       type: [
         new Schema<SavedReply>(

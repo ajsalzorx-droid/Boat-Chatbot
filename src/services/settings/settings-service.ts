@@ -58,16 +58,18 @@ export const DEFAULT_SETTINGS: SettingsData = {
   },
   retention: { messageRetentionDays: 365 },
   humanFirst: { enabled: false, waitSeconds: 15, pauseMinutes: 30 },
+  handoffResumeMinutes: 10,
   savedReplies: [],
 };
 
 /** Documents created before a setting existed lack it; lean reads do not apply schema defaults. */
 function withDefaults(settings: CompanySettingsDoc): CompanySettingsDoc {
-  const stored: Partial<Pick<CompanySettingsDoc, "humanFirst" | "savedReplies">> = settings;
+  const stored: Partial<Pick<CompanySettingsDoc, "humanFirst" | "handoffResumeMinutes" | "savedReplies">> = settings;
   return {
     ...settings,
     ai: { ...DEFAULT_SETTINGS.ai, ...settings.ai },
     humanFirst: stored.humanFirst ?? DEFAULT_SETTINGS.humanFirst,
+    handoffResumeMinutes: stored.handoffResumeMinutes ?? DEFAULT_SETTINGS.handoffResumeMinutes,
     savedReplies: stored.savedReplies ?? DEFAULT_SETTINGS.savedReplies,
   };
 }

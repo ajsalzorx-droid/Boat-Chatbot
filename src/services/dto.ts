@@ -190,6 +190,7 @@ export function toSettingsDto(settings: CompanySettingsDoc): SettingsDto {
     },
     retention: { messageRetentionDays: settings.retention.messageRetentionDays },
     humanFirst: { ...settings.humanFirst },
+    handoffResumeMinutes: settings.handoffResumeMinutes,
     savedReplies: settings.savedReplies.map(({ title, text }) => ({ title, text })),
     updatedAt: settings.updatedAt.toISOString(),
   };

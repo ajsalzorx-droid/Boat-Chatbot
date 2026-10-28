@@ -5,7 +5,7 @@ import type { Types } from "mongoose";
 import { logger } from "@/lib/logging/logger";
 import { consumeRateLimit } from "@/lib/security/rate-limit";
 import { customerServiceWindow } from "@/lib/whatsapp/policy";
-import { Conversation } from "@/models/conversation";
+import { Conversation, type ConversationDoc } from "@/models/conversation";
 import { Message, type MessageDoc } from "@/models/message";
 import { getAiProvider } from "@/providers/ai";
 import { generateReply } from "@/services/chatbot/engine";
@@ -60,6 +60,30 @@ async function loadHistory(conversationId: Types.ObjectId, beforeMessageId: Type
   }));
 }
 
+/**
+ * A handover nobody picked up: no staff reply within `minutes` of it. The bot then takes the chat
+ * back so the customer is not left waiting. Pauses set by staff ("Pause bot") have no handover
+ * time and are never lifted here.
+ */
+async function resumeUnansweredHandoff(conversation: ConversationDoc, minutes: number): Promise<boolean> {
+  const since = conversation.handoffRequestedAt;
+  if (minutes <= 0 || conversation.status !== "needs_human" || !since) return false;
+  if (Date.now() - since.getTime() < minutes * 60_000) return false;
+  const staffReplied = await Message.exists({
+    conversationId: conversation._id,
+    direction: "outbound",
+    sender: { $in: ["agent", "business_app"] },
+    createdAt: { $gte: since },
+  });
+  if (staffReplied) return false;
+  // Conditional on the same handover, so a newer handover or a staff action in between wins.
+  const result = await Conversation.updateOne(
+    { _id: conversation._id, status: "needs_human", handoffRequestedAt: since },
+    { $set: { status: "open", botEnabled: true, handoffRequestedAt: null } },
+  );
+  return result.modifiedCount === 1;
+}
+
 async function deliver(message: MessageDoc): Promise<InboundOutcome> {
   if (message.status !== "pending") return "already_replied";
   const result = await deliverOutboundMessage(message._id);
@@ -75,7 +99,7 @@ export async function processInboundMessage(messageId: Types.ObjectId): Promise<
   const existingReply = await Message.findOne({ botReplyTo: replyKey }).lean();
   if (existingReply) return deliver(existingReply);
 
-  const conversation = await Conversation.findById(inbound.conversationId).lean();
+  let conversation = await Conversation.findById(inbound.conversationId).lean();
   if (!conversation) throw new Error("Conversation not found for inbound message");
   const settings = await getSettings();
   const text = inbound.text ?? "";
@@ -113,6 +137,10 @@ export async function processInboundMessage(messageId: Types.ObjectId): Promise<
   }
 
   if (conversation.optedOut) return "no_reply_opted_out";
+  if (await resumeUnansweredHandoff(conversation, settings.handoffResumeMinutes)) {
+    log.info("inbound.handoff_expired_bot_resumed");
+    conversation = { ...conversation, status: "open", botEnabled: true, handoffRequestedAt: null };
+  }
   if (!settings.botEnabled || !conversation.botEnabled || conversation.status === "needs_human") {
     return "no_reply_bot_disabled";
   }
