@@ -16,10 +16,13 @@ interface Draft {
   currency: string;
   availability: ProductDto["availability"];
   keywords: string;
+  offerPrice: string;
+  offerUntil: string;
+  offerNote: string;
   active: boolean;
 }
 
-const EMPTY: Draft = { id: null, kind: "product", name: "", description: "", price: "", currency: "AED", availability: "available", keywords: "", active: true };
+const EMPTY: Draft = { id: null, kind: "product", name: "", description: "", price: "", currency: "AED", availability: "available", keywords: "", offerPrice: "", offerUntil: "", offerNote: "", active: true };
 
 const AVAILABILITY_LABEL: Record<ProductDto["availability"], string> = {
   available: "Available",
@@ -42,6 +45,11 @@ export function ProductsClient() {
       setActionError("Price must be a positive number, or empty if not published.");
       return;
     }
+    const offerPrice = draft.offerPrice.trim() === "" ? null : Number(draft.offerPrice);
+    if (offerPrice !== null && (!Number.isFinite(offerPrice) || offerPrice < 0 || !draft.offerUntil)) {
+      setActionError("An offer needs a positive price and a last day.");
+      return;
+    }
     const body = {
       kind: draft.kind,
       name: draft.name,
@@ -50,6 +58,7 @@ export function ProductsClient() {
       currency: draft.currency,
       availability: draft.availability,
       keywords: draft.keywords.split(",").map((keyword) => keyword.trim()).filter(Boolean),
+      offer: offerPrice === null ? null : { price: offerPrice, validUntil: draft.offerUntil, note: draft.offerNote },
       active: draft.active,
     };
     try {
@@ -115,6 +124,17 @@ export function ProductsClient() {
             <Field label="Keywords" hint="Comma separated other names customers use">
               <Input value={draft.keywords} onChange={(event) => setDraft({ ...draft, keywords: event.target.value })} />
             </Field>
+            <Field label="Offer price" hint="Optional special price. Leave empty for no offer.">
+              <Input inputMode="decimal" value={draft.offerPrice} onChange={(event) => setDraft({ ...draft, offerPrice: event.target.value })} />
+            </Field>
+            <Field label="Offer valid until" hint="Last day of the offer; the bot stops mentioning it afterwards">
+              <Input type="date" value={draft.offerUntil} onChange={(event) => setDraft({ ...draft, offerUntil: event.target.value })} />
+            </Field>
+            <div className="md:col-span-2">
+              <Field label="Offer note" hint="Optional, e.g. Weekend special">
+                <Input maxLength={200} value={draft.offerNote} onChange={(event) => setDraft({ ...draft, offerNote: event.target.value })} />
+              </Field>
+            </div>
             <div className="md:col-span-2">
               <Checkbox label="Active (used by the bot)" checked={draft.active} onChange={(active) => setDraft({ ...draft, active })} />
             </div>
@@ -148,7 +168,13 @@ export function ProductsClient() {
                     <p className="font-medium">{product.name}</p>
                     <p className="text-xs capitalize text-slate-500">{product.kind}</p>
                   </td>
-                  <td className="px-4 py-2">{product.price === null ? <span className="text-slate-500">Not published</span> : `${product.price} ${product.currency}`}</td>
+                  <td className="px-4 py-2">{product.price === null ? <span className="text-slate-500">Not published</span> : `${product.price} ${product.currency}`}
+                    {product.offer ? (
+                      <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                        Offer {product.offer.price} {product.currency} until {product.offer.validUntil}
+                      </p>
+                    ) : null}
+                  </td>
                   <td className="px-4 py-2">{AVAILABILITY_LABEL[product.availability]}</td>
                   <td className="px-4 py-2">{product.active ? <Badge tone="green">Active</Badge> : <Badge>Inactive</Badge>}</td>
                   <td className="whitespace-nowrap px-4 py-2 text-right">
@@ -164,6 +190,9 @@ export function ProductsClient() {
                           currency: product.currency,
                           availability: product.availability,
                           keywords: product.keywords.join(", "),
+                          offerPrice: product.offer ? String(product.offer.price) : "",
+                          offerUntil: product.offer?.validUntil ?? "",
+                          offerNote: product.offer?.note ?? "",
                           active: product.active,
                         })
                       }

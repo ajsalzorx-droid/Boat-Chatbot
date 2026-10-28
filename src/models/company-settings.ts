@@ -54,7 +54,8 @@ export interface CompanySettingsDoc {
     optIn: LocalizedText;
   };
   humanSupport: { phone: string; email: string; hoursNote: string };
-  ai: { enabled: boolean; maxHistoryMessages: number };
+  /** aiFirst: the AI writes every answer except greetings and thanks (rule answers are the fallback). */
+  ai: { enabled: boolean; aiFirst: boolean; maxHistoryMessages: number };
   maxResponseLength: number;
   messaging: {
     /** Approved template used to re-open a conversation outside the customer service window. */
@@ -140,6 +141,7 @@ const companySettingsSchema = new Schema<CompanySettingsDoc>(
     },
     ai: {
       enabled: { type: Boolean, default: true },
+      aiFirst: { type: Boolean, default: false },
       maxHistoryMessages: { type: Number, min: 0, max: 30, default: 10 },
     },
     maxResponseLength: { type: Number, min: 100, max: 4096, default: 700 },

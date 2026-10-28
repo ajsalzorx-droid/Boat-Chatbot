@@ -18,6 +18,7 @@ const HUMAN = [
 const HOURS = ["hours", "opening", "open", "close", "closing", "timing", "timings", "working hours", "دوام", "ساعات", "متى تفتحون", "مفتوح"];
 const LOCATION = ["address", "location", "where", "located", "map", "directions", "branch", "عنوان", "موقع", "وين", "فرع"];
 const CONTACT = ["contact", "phone", "call", "email", "number", "website", "instagram", "رقم", "تواصل", "ايميل"];
+const OFFERS = ["offer", "offers", "discount", "discounts", "deal", "deals", "sale", "promo", "promotion", "promotions", "عرض", "عروض", "خصم", "تخفيض", "تخفيضات"];
 
 /** Obvious attempts to manipulate the bot or extract hidden instructions or secrets. */
 const INJECTION_PATTERNS: readonly RegExp[] = [
@@ -44,6 +45,7 @@ export function detectSimpleIntent(text: string): Intent | null {
   if (containsPhrase(text, HUMAN)) return "human";
   if (tokens.length <= 5 && containsPhrase(text, THANKS)) return "thanks";
   if (tokens.length <= 4 && containsPhrase(text, GREETINGS)) return "greeting";
+  if (containsPhrase(text, OFFERS)) return "offers";
   if (containsPhrase(text, HOURS)) return "hours";
   if (containsPhrase(text, LOCATION)) return "location";
   if (containsPhrase(text, CONTACT)) return "contact";
@@ -105,16 +107,42 @@ export function formatPrice(price: number, currency: string): string {
   return `${price.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${currency}`;
 }
 
+function offerLine(product: KnowledgeProduct, language: Language): string | null {
+  if (!product.offer) return null;
+  const until = language === "ar" ? `حتى ${product.offer.validUntil}` : `until ${product.offer.validUntil}`;
+  const was = product.price !== null && product.price > product.offer.price ? ` ~${formatPrice(product.price, product.currency)}~` : "";
+  const note = product.offer.note ? ` (${product.offer.note})` : "";
+  return `${language === "ar" ? "🎉 عرض خاص" : "🎉 Offer"}: *${formatPrice(product.offer.price, product.currency)}*${was} ${until}${note}`;
+}
+
 export function describeProduct(product: KnowledgeProduct, language: Language): string {
   const lines = [`*${product.name}*`];
   if (product.description) lines.push(product.description);
-  if (product.price !== null) {
+  const offer = offerLine(product, language);
+  if (offer) {
+    lines.push(offer);
+  } else if (product.price !== null) {
     lines.push(`${language === "ar" ? "السعر" : "Price"}: ${formatPrice(product.price, product.currency)}`);
   } else {
     lines.push(language === "ar" ? "للاستفسار عن السعر يرجى التواصل معنا." : "Please contact us for pricing.");
   }
   lines.push(AVAILABILITY_TEXT[language][product.availability]);
   return lines.join("\n");
+}
+
+/** Lists the products that have a valid offer right now (expired offers are already removed). */
+export function offersReply(products: readonly KnowledgeProduct[], language: Language): string {
+  const current = products.filter((product) => product.offer && product.availability !== "discontinued");
+  if (current.length === 0) {
+    return language === "ar" ? "لا توجد عروض خاصة حالياً، لكن يسعدنا مساعدتك في أي منتج." : "We don't have any special offers right now, but we're happy to help you with any product.";
+  }
+  const heading = language === "ar" ? "عروضنا الحالية:" : "Our current offers:";
+  return [heading, ...current.slice(0, 5).map((product) => describeProduct(product, language))].join("\n\n");
+}
+
+/** Drops offers whose last day (company timezone) has passed. */
+export function withCurrentOffers(products: readonly KnowledgeProduct[], today: string): KnowledgeProduct[] {
+  return products.map((product) => (product.offer && product.offer.validUntil < today ? { ...product, offer: null } : product));
 }
 
 export function hoursReply(settings: BotSettings, language: Language, now: Date): string | null {

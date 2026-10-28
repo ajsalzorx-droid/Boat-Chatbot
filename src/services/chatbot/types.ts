@@ -1,5 +1,5 @@
 import type { BotSource } from "@/models/message";
-import type { Availability, ProductKind } from "@/models/product";
+import type { Availability, ProductKind, ProductOffer } from "@/models/product";
 import type { DaySchedule, LocalizedText, SpecialClosure } from "@/models/company-settings";
 
 /**
@@ -18,6 +18,7 @@ export type Intent =
   | "contact"
   | "faq"
   | "product"
+  | "offers"
   | "ai"
   | "fallback"
   | "injection";
@@ -38,6 +39,8 @@ export interface KnowledgeProduct {
   currency: string;
   availability: Availability;
   keywords: string[];
+  /** Only set while the offer is still valid; the engine drops expired ones. */
+  offer: ProductOffer | null;
 }
 
 /** Trusted company configuration, as approved by administrators. */
@@ -61,6 +64,8 @@ export interface BotSettings {
   humanSupport: { phone: string; email: string; hoursNote: string };
   maxResponseLength: number;
   aiEnabled: boolean;
+  /** AI writes every answer from the trusted data; rule answers become the fallback. */
+  aiFirst: boolean;
 }
 
 export interface HistoryTurn {

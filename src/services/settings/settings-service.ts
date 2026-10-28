@@ -49,7 +49,7 @@ export const DEFAULT_SETTINGS: SettingsData = {
     },
   },
   humanSupport: { phone: "", email: "", hoursNote: "" },
-  ai: { enabled: true, maxHistoryMessages: 10 },
+  ai: { enabled: true, aiFirst: false, maxHistoryMessages: 10 },
   maxResponseLength: 700,
   messaging: {
     reengagementTemplate: null,
@@ -66,6 +66,7 @@ function withDefaults(settings: CompanySettingsDoc): CompanySettingsDoc {
   const stored: Partial<Pick<CompanySettingsDoc, "humanFirst" | "savedReplies">> = settings;
   return {
     ...settings,
+    ai: { ...DEFAULT_SETTINGS.ai, ...settings.ai },
     humanFirst: stored.humanFirst ?? DEFAULT_SETTINGS.humanFirst,
     savedReplies: stored.savedReplies ?? DEFAULT_SETTINGS.savedReplies,
   };
@@ -115,5 +116,6 @@ export function toBotSettings(settings: CompanySettingsDoc): BotSettings {
     humanSupport: settings.humanSupport,
     maxResponseLength: settings.maxResponseLength,
     aiEnabled: settings.ai.enabled,
+    aiFirst: settings.ai.aiFirst,
   };
 }

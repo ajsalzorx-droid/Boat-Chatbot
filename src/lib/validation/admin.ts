@@ -73,6 +73,14 @@ export const productSchema = z.object({
   currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/).default("AED"),
   availability: z.enum(AVAILABILITY).default("available"),
   keywords: keywordsSchema,
+  offer: z
+    .object({
+      price: z.number().min(0).max(100_000_000),
+      validUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"),
+      note: trimmed(200).default(""),
+    })
+    .nullable()
+    .default(null),
   active: z.boolean().default(true),
 });
 
@@ -112,7 +120,7 @@ export const settingsSchema = z.object({
     optIn: localized,
   }),
   humanSupport: z.object({ phone: trimmed(30), email: z.union([z.literal(""), z.email().max(200)]), hoursNote: trimmed(300) }),
-  ai: z.object({ enabled: z.boolean(), maxHistoryMessages: z.number().int().min(0).max(30) }),
+  ai: z.object({ enabled: z.boolean(), aiFirst: z.boolean(), maxHistoryMessages: z.number().int().min(0).max(30) }),
   maxResponseLength: z.number().int().min(100).max(4096),
   messaging: z.object({
     reengagementTemplate: z

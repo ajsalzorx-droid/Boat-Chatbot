@@ -188,6 +188,7 @@ export function botSettings(overrides: Partial<BotSettings> = {}): BotSettings {
     humanSupport: { phone: "+971 4 000 0000", email: "help@desertbloom.example.com", hoursNote: "" },
     maxResponseLength: 700,
     aiEnabled: true,
+    aiFirst: false,
     ...overrides,
   };
 }
@@ -200,8 +201,8 @@ export function knowledge(overrides: Partial<Knowledge> = {}): Knowledge {
       { id: "f2", question: "What payment methods do you accept?", answer: "We accept cash, card and Apple Pay.", keywords: ["pay", "card", "cash"] },
     ],
     products: [
-      { id: "p1", kind: "product", name: "Red Rose Bouquet", description: "12 fresh red roses", price: 199, currency: "AED", availability: "available", keywords: ["roses"] },
-      { id: "p2", kind: "product", name: "Orchid Pot", description: "White orchid", price: null, currency: "AED", availability: "on_request", keywords: [] },
+      { id: "p1", kind: "product", name: "Red Rose Bouquet", description: "12 fresh red roses", price: 199, currency: "AED", availability: "available", keywords: ["roses"], offer: null },
+      { id: "p2", kind: "product", name: "Orchid Pot", description: "White orchid", price: null, currency: "AED", availability: "on_request", keywords: [], offer: null },
     ],
     ...overrides,
   };

@@ -130,6 +130,7 @@ export interface ProductDto {
   currency: string;
   availability: ProductDoc["availability"];
   keywords: string[];
+  offer: { price: number; validUntil: string; note: string } | null;
   active: boolean;
   updatedAt: string;
 }
@@ -144,6 +145,7 @@ export function toProductDto(product: ProductDoc): ProductDto {
     currency: product.currency,
     availability: product.availability,
     keywords: product.keywords,
+    offer: product.offer ? { price: product.offer.price, validUntil: product.offer.validUntil, note: product.offer.note } : null,
     active: product.active,
     updatedAt: product.updatedAt.toISOString(),
   };
@@ -175,7 +177,7 @@ export function toSettingsDto(settings: CompanySettingsDoc): SettingsDto {
       optIn: { en: settings.messages.optIn.en, ar: settings.messages.optIn.ar },
     },
     humanSupport: { ...settings.humanSupport },
-    ai: { enabled: settings.ai.enabled, maxHistoryMessages: settings.ai.maxHistoryMessages },
+    ai: { enabled: settings.ai.enabled, aiFirst: settings.ai.aiFirst, maxHistoryMessages: settings.ai.maxHistoryMessages },
     maxResponseLength: settings.maxResponseLength,
     messaging: {
       reengagementTemplate: settings.messaging.reengagementTemplate

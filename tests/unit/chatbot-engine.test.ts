@@ -166,6 +166,64 @@ describe("AI-assisted replies", () => {
   });
 });
 
+describe("offers", () => {
+  // OPEN_TIME is 2026-10-13 in Dubai.
+  function withOffer(validUntil: string) {
+    const base = knowledge();
+    return knowledge({
+      products: base.products.map((product) => (product.id === "p1" ? { ...product, offer: { price: 159, validUntil, note: "Weekend special" } } : product)),
+    });
+  }
+
+  it("lists current offers when asked, with the offer price and last day", async () => {
+    const reply = await generateReply(input("Any offers today?"), withOffer("2026-10-15"), noAi);
+    expect(reply).toMatchObject({ intent: "offers", source: "product" });
+    expect(reply.text).toContain("Red Rose Bouquet");
+    expect(reply.text).toContain("159 AED");
+    expect(reply.text).toContain("2026-10-15");
+  });
+
+  it("shows the offer in a product answer and never after it ended", async () => {
+    const current = await generateReply(input("red rose bouquet price"), withOffer("2026-10-13"), noAi);
+    expect(current.text).toContain("159 AED");
+    const ended = await generateReply(input("red rose bouquet price"), withOffer("2026-10-12"), noAi);
+    expect(ended.text).toContain("199 AED");
+    expect(ended.text).not.toContain("159");
+    expect((await generateReply(input("any discounts?"), withOffer("2026-10-12"), noAi)).text).toContain("don't have any special offers");
+  });
+
+  it("lets the AI quote a current offer price but not an expired one", async () => {
+    const ai = fakeAi(() => Promise.resolve("Our roses are on offer for 159 AED this week!"));
+    const deps = { ai: { provider: ai.provider, timeoutMs: 1000 }, maxHistoryMessages: 10 };
+    const current = await generateReply(input("something nice for a gift"), withOffer("2026-10-20"), deps);
+    expect(current).toMatchObject({ source: "ai" });
+    expect(ai.calls[0]?.system).toContain("CURRENT OFFER: 159 AED until 2026-10-20");
+    const expired = await generateReply(input("something nice for a gift"), withOffer("2026-10-01"), deps);
+    expect(expired.source).not.toBe("ai");
+  });
+});
+
+describe("AI-first mode", () => {
+  const aiFirst = () => knowledge({ settings: { ...knowledge().settings, aiFirst: true } });
+
+  it("lets the AI write answers the rules could give, using the same data", async () => {
+    const ai = fakeAi(() => Promise.resolve("We're open today until 9 pm, see you soon!"));
+    const reply = await generateReply(input("What are your opening hours?"), aiFirst(), { ai: { provider: ai.provider, timeoutMs: 1000 }, maxHistoryMessages: 10 });
+    expect(reply).toMatchObject({ source: "ai", text: "We're open today until 9 pm, see you soon!" });
+    expect(ai.calls[0]?.system).toContain("Opening hours");
+  });
+
+  it("keeps greetings as rules and falls back to the rule answer when the AI fails", async () => {
+    const ai = fakeAi(() => Promise.reject(new AiProviderError("timeout", "slow")));
+    const deps = { ai: { provider: ai.provider, timeoutMs: 10 }, maxHistoryMessages: 10 };
+    expect((await generateReply(input("Hi"), aiFirst(), deps)).source).toBe("rules");
+    expect(ai.calls).toHaveLength(0);
+    const faq = await generateReply(input("Do you deliver to Sharjah?"), aiFirst(), deps);
+    expect(faq).toMatchObject({ source: "faq", text: "Yes, we deliver to Sharjah for 25 AED, same day before 4pm." });
+    expect(ai.calls).toHaveLength(1);
+  });
+});
+
 describe("checkModelOutput", () => {
   const products = knowledge().products;
   it("accepts verified prices in different formats", () => {

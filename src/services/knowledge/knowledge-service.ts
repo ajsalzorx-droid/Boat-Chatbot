@@ -11,7 +11,7 @@ import type { KnowledgeFaq, KnowledgeProduct } from "@/services/chatbot/types";
 /** CRUD for the trusted knowledge the chatbot answers from: FAQs and products/services. */
 
 export type FaqInput = Pick<FaqDoc, "question" | "answer" | "keywords" | "active">;
-export type ProductInput = Pick<ProductDoc, "kind" | "name" | "description" | "price" | "currency" | "availability" | "keywords" | "active">;
+export type ProductInput = Pick<ProductDoc, "kind" | "name" | "description" | "price" | "currency" | "availability" | "keywords" | "offer" | "active">;
 
 function notFound(what: string): AppError {
   return new AppError(`${what} not found`, { code: "NOT_FOUND", httpStatus: 404, publicMessage: `${what} not found.` });
@@ -83,6 +83,8 @@ export async function loadKnowledge(): Promise<{ faqs: KnowledgeFaq[]; products:
       currency: product.currency,
       availability: product.availability,
       keywords: product.keywords,
+      // Documents created before offers existed have no field.
+      offer: product.offer ?? null,
     })),
   };
 }

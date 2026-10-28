@@ -1,7 +1,7 @@
 import { logger } from "@/lib/logging/logger";
 import { AiProviderError, type AiProvider } from "@/providers/ai/types";
 
-import { isOpenNow } from "./business-hours";
+import { isOpenNow, zonedNow } from "./business-hours";
 import { buildMessages, buildSystemPrompt, checkModelOutput } from "./prompt";
 import {
   contactReply,
@@ -11,10 +11,12 @@ import {
   injectionReply,
   isInjectionAttempt,
   locationReply,
+  offersReply,
   pick,
   rankFaqs,
   rankProducts,
   thanksReply,
+  withCurrentOffers,
 } from "./rules";
 import { detectLanguage, truncate } from "./text";
 import type { ChatbotInput, ChatbotReply, Intent, Knowledge, Language } from "./types";
@@ -25,8 +27,9 @@ import type { ChatbotInput, ChatbotReply, Intent, Knowledge, Language } from "./
  * Order of precedence:
  * 1. Safety: manipulation attempts get a fixed refusal; the AI never sees them.
  * 2. Explicit requests for a person hand the conversation to staff.
- * 3. High-confidence rule answers (greeting, hours, location, contact, strong FAQ match) are used
- *    directly: deterministic, instant, free.
+ * 3. High-confidence rule answers (greeting, hours, location, contact, offers, strong FAQ match)
+ *    are used directly: deterministic, instant, free. In AI-first mode only greetings and thanks
+ *    are; everything else is written by the AI from the same trusted data.
  * 4. Otherwise the AI answers from trusted data, if configured and enabled.
  * 5. If AI is off, times out, fails or produces an unsafe answer, the best rule answer is used,
  *    then the configured fallback message.
@@ -82,6 +85,11 @@ function ruleCandidate(input: ChatbotInput, knowledge: Knowledge, language: Lang
   if (intent === "contact") {
     const text = contactReply(settings, language);
     if (text) return { candidate: { text, intent, source: "rules" }, confident: true };
+  }
+  if (intent === "offers") {
+    // A specific product ("any offer on kingfish?") is answered by the product match below.
+    const named = rankProducts(input.text, knowledge.products).some((entry) => entry.score >= PRODUCT_CONFIDENCE);
+    if (!named) return { candidate: { text: offersReply(knowledge.products, language), intent, source: "product" }, confident: true };
   }
 
   const bestFaq = rankFaqs(input.text, knowledge.faqs)[0];
@@ -154,9 +162,11 @@ async function aiReply(
   }
 }
 
-export async function generateReply(input: ChatbotInput, knowledge: Knowledge, deps: EngineDependencies): Promise<ChatbotReply> {
+export async function generateReply(input: ChatbotInput, stored: Knowledge, deps: EngineDependencies): Promise<ChatbotReply> {
   const language = detectLanguage(input.text);
-  const maxLength = knowledge.settings.maxResponseLength;
+  const maxLength = stored.settings.maxResponseLength;
+  // Expired offers are removed once, so neither rules nor the AI (nor the price check) can use them.
+  const knowledge: Knowledge = { ...stored, products: withCurrentOffers(stored.products, zonedNow(input.now, stored.settings.timezone).date) };
 
   if (isInjectionAttempt(input.text)) {
     return reply({ text: injectionReply(language), intent: "injection", source: "policy" }, language, maxLength);
@@ -172,7 +182,9 @@ export async function generateReply(input: ChatbotInput, knowledge: Knowledge, d
   }
 
   const rules = ruleCandidate(input, knowledge, language);
-  if (rules.candidate && rules.confident) return reply(rules.candidate, language, maxLength);
+  const greetingOrThanks = rules.candidate?.intent === "greeting" || rules.candidate?.intent === "thanks";
+  const aiFirst = knowledge.settings.aiFirst && knowledge.settings.aiEnabled && deps.ai !== null && !greetingOrThanks;
+  if (rules.candidate && rules.confident && !aiFirst) return reply(rules.candidate, language, maxLength);
 
   const ai = await aiReply(input, knowledge, language, deps);
   if (ai) return ai;

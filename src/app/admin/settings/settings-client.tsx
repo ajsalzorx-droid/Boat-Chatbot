@@ -178,6 +178,11 @@ export function SettingsClient() {
         <Section title="Chatbot" description="Customer messages are untrusted; these instructions cannot be overridden by them.">
           <Checkbox label="Bot enabled (when off, nobody gets automatic replies)" checked={settings.botEnabled} onChange={(value) => set("botEnabled", value)} />
           <Checkbox label="Use AI for questions not covered by FAQs (if configured on the server)" checked={settings.ai.enabled} onChange={(enabled) => set("ai", { ...settings.ai, enabled })} />
+          <Checkbox
+            label="AI writes every answer (hours, location, FAQs, products, offers) from the data above; fixed answers are used only if AI fails"
+            checked={settings.ai.aiFirst}
+            onChange={(aiFirst) => set("ai", { ...settings.ai, aiFirst })}
+          />
           <Field label="Bot instructions" hint="Tone and style, e.g. 'Friendly and short. Offer the website for full catalogue.'">
             <Textarea value={settings.botInstructions} maxLength={4000} onChange={(event) => set("botInstructions", event.target.value)} />
           </Field>
