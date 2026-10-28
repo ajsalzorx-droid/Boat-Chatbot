@@ -92,6 +92,22 @@ export function getDatabaseConfig(source: EnvSource = process.env): DatabaseConf
 }
 
 // ---------------------------------------------------------------------------------------------
+// Company website database (optional, read only)
+// ---------------------------------------------------------------------------------------------
+
+const websiteDbSchema = z.object({
+  WEBSITE_DB_URI: z.string().regex(/^mongodb(\+srv)?:\/\//, "must be a MongoDB connection string"),
+  WEBSITE_DB_NAME: z.string().regex(/^[A-Za-z0-9_-]{1,63}$/).optional(),
+});
+
+/** Null when WEBSITE_DB_URI is not set: the bot then answers from its own products only. */
+export function getWebsiteDbConfig(source: EnvSource = process.env): DatabaseConfig | null {
+  if (readEnv(source, ["WEBSITE_DB_URI"]).WEBSITE_DB_URI === undefined) return null;
+  const env = parseGroup("website database", websiteDbSchema, source);
+  return { uri: env.WEBSITE_DB_URI, dbName: env.WEBSITE_DB_NAME };
+}
+
+// ---------------------------------------------------------------------------------------------
 // WhatsApp Cloud API
 // ---------------------------------------------------------------------------------------------
 

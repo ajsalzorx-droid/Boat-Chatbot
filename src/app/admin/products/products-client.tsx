@@ -5,6 +5,7 @@ import { useState, type SubmitEvent } from "react";
 import { Badge, Button, Card, Checkbox, EmptyState, ErrorBanner, Field, Input, PageHeader, Select, Textarea } from "@/components/ui";
 import { api, errorMessage } from "@/lib/client/api";
 import { usePolling } from "@/lib/client/use-polling";
+import type { KnowledgeProduct } from "@/services/chatbot/types";
 import type { ProductDto, SettingsDto } from "@/services/dto";
 import type { WebsiteSyncReport } from "@/services/knowledge/website-sync";
 
@@ -33,7 +34,7 @@ const AVAILABILITY_LABEL: Record<ProductDto["availability"], string> = {
 };
 
 export function ProductsClient() {
-  const { data, error, refresh } = usePolling<{ items: ProductDto[] }>("/api/admin/products", 60_000);
+  const { data, error, refresh } = usePolling<{ items: ProductDto[]; website: { error: boolean; items: KnowledgeProduct[] } | null }>("/api/admin/products", 60_000);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [syncUrl, setSyncUrl] = useState<string | null>(null);
@@ -212,7 +213,42 @@ export function ProductsClient() {
         </Card>
       ) : null}
 
-      {data && data.items.length === 0 ? <EmptyState title="No products or services yet" /> : null}
+      {data?.website ? (
+        <Card className="mb-4 overflow-x-auto p-0">
+          <div className="border-b border-slate-200 px-4 py-3 text-sm dark:border-slate-800">
+            {data.website.error ? (
+              <span className="text-red-600">The website database could not be reached. The bot is using the items below until it is back.</span>
+            ) : (
+              <>
+                <span className="font-medium">Live from the website database ({data.website.items.length} items).</span>{" "}
+                <span className="text-slate-500">Change these in the website admin; the bot sees changes within a minute. Items marked “from website” below are only a backup copy.</span>
+              </>
+            )}
+          </div>
+          {data.website.items.length > 0 ? (
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {data.website.items.map((product) => (
+                  <tr key={product.id}>
+                    <td className="px-4 py-2 font-medium">{product.name}</td>
+                    <td className="px-4 py-2">
+                      {product.price === null ? <span className="text-slate-500">Not published</span> : `${product.price} ${product.currency}`}
+                      {product.offer ? (
+                        <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                          Offer {product.offer.price} {product.currency} until {product.offer.validUntil}
+                        </p>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-2">{AVAILABILITY_LABEL[product.availability]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : null}
+        </Card>
+      ) : null}
+
+      {data && data.items.length === 0 && !data.website?.items.length ? <EmptyState title="No products or services yet" /> : null}
       {data && data.items.length > 0 ? (
         <Card className="overflow-x-auto p-0">
           <table className="w-full min-w-[640px] text-left text-sm">

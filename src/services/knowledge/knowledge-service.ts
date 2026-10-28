@@ -8,6 +8,8 @@ import { Faq, type FaqDoc } from "@/models/faq";
 import { Product, type ProductDoc } from "@/models/product";
 import type { KnowledgeFaq, KnowledgeProduct } from "@/services/chatbot/types";
 
+import { loadWebsiteProducts } from "./website-db";
+
 /** CRUD for the trusted knowledge the chatbot answers from: FAQs and products/services. */
 
 export type FaqInput = Pick<FaqDoc, "question" | "answer" | "keywords" | "active">;
@@ -65,16 +67,24 @@ export async function deleteProduct(id: Types.ObjectId): Promise<void> {
   if (result.deletedCount === 0) throw notFound("Product");
 }
 
-/** Active knowledge only, in the engine's plain format. */
+/**
+ * Active knowledge only, in the engine's plain format.
+ *
+ * With the website database connected, products come live from it, plus the items added here by
+ * hand. Copies made by the website sync are then skipped so nothing is listed twice; they are
+ * used only when the website database cannot be reached.
+ */
 export async function loadKnowledge(): Promise<{ faqs: KnowledgeFaq[]; products: KnowledgeProduct[] }> {
   await connectToDatabase();
-  const [faqs, products] = await Promise.all([
+  const [faqs, products, websiteProducts] = await Promise.all([
     Faq.find({ active: true }).limit(500).lean(),
     Product.find({ active: true }).limit(1000).lean(),
+    loadWebsiteProducts(),
   ]);
+  const local = websiteProducts ? products.filter((product) => product.source !== "website") : products;
   return {
     faqs: faqs.map((faq) => ({ id: faq._id.toString(), question: faq.question, answer: faq.answer, keywords: faq.keywords })),
-    products: products.map((product) => ({
+    products: [...(websiteProducts ?? []), ...local.map((product) => ({
       id: product._id.toString(),
       kind: product.kind,
       name: product.name,
@@ -85,6 +95,6 @@ export async function loadKnowledge(): Promise<{ faqs: KnowledgeFaq[]; products:
       keywords: product.keywords,
       // Documents created before offers existed have no field.
       offer: product.offer ?? null,
-    })),
+    }))],
   };
 }
