@@ -187,6 +187,7 @@ export function ConversationDetailClient({ id, currentUserId, canDelete, canRetr
                 <ConversationStatusBadge status={detail.status} />
                 {detail.channel === "simulator" ? <Badge tone="blue">Simulator</Badge> : null}
                 {detail.optedOut ? <Badge tone="red">Opted out</Badge> : null}
+                {detail.offersOptIn ? <Badge tone="green">Gets offers</Badge> : null}
               </div>
               <p className="text-sm text-slate-500">
                 {detail.customerNumberFull ? `+${detail.customerNumberFull}` : "No phone number"} · since {formatDateTime(detail.createdAt)}
@@ -196,6 +197,15 @@ export function ConversationDetailClient({ id, currentUserId, canDelete, canRetr
               <Button variant="secondary" onClick={() => void update({ botEnabled: !detail.botEnabled })}>
                 {detail.botEnabled ? "Pause bot" : "Resume bot"}
               </Button>
+              {!detail.optedOut ? (
+                <Button
+                  variant="secondary"
+                  title={detail.offersOptIn ? "Stop sending offer alerts to this customer" : "Only if the customer agreed to receive offers on WhatsApp"}
+                  onClick={() => void update({ offersOptIn: !detail.offersOptIn })}
+                >
+                  {detail.offersOptIn ? "Stop offers" : "Customer agreed to offers"}
+                </Button>
+              ) : null}
               {detail.status !== "needs_human" ? (
                 <Button variant="secondary" onClick={() => void update({ status: "needs_human" })}>
                   Hand over to staff

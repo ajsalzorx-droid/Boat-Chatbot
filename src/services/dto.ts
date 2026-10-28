@@ -28,6 +28,7 @@ export interface ConversationSummaryDto {
   assignedAgentId: string | null;
   unanswered: boolean;
   optedOut: boolean;
+  offersOptIn: boolean;
 }
 
 export function toConversationSummary(conversation: ConversationDoc): ConversationSummaryDto {
@@ -46,6 +47,8 @@ export function toConversationSummary(conversation: ConversationDoc): Conversati
     assignedAgentId: conversation.assignedAgentId?.toString() ?? null,
     unanswered: conversation.status !== "resolved" && lastIn > lastOut,
     optedOut: conversation.optedOut,
+    // Conversations created before offer alerts existed have no field.
+    offersOptIn: (conversation.offersOptIn as boolean | undefined) === true,
   };
 }
 
@@ -195,6 +198,10 @@ export function toSettingsDto(settings: CompanySettingsDoc): SettingsDto {
     retention: { messageRetentionDays: settings.retention.messageRetentionDays },
     humanFirst: { ...settings.humanFirst },
     handoffResumeMinutes: settings.handoffResumeMinutes,
+    offerAlerts: {
+      enabled: settings.offerAlerts.enabled,
+      template: settings.offerAlerts.template ? { name: settings.offerAlerts.template.name, languageCode: settings.offerAlerts.template.languageCode } : null,
+    },
     savedReplies: settings.savedReplies.map(({ title, text }) => ({ title, text })),
     updatedAt: settings.updatedAt.toISOString(),
   };

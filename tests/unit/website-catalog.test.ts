@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { mapWebsiteCatalog, type WebsiteCatalogInput } from "@/services/knowledge/website-catalog";
+import { mapCurrentOffers, mapWebsiteCatalog, type WebsiteCatalogInput } from "@/services/knowledge/website-catalog";
 
 const NOW = new Date("2026-10-26T10:00:00.000Z");
 
@@ -54,5 +54,14 @@ describe("mapWebsiteCatalog", () => {
     );
     expect(products.find((product) => product.name === "Lobster")?.offer?.price).toBe(196);
     expect(products.find((product) => product.name === "Crispy Calamari")?.offer).toBeNull();
+  });
+});
+
+describe("mapCurrentOffers", () => {
+  const base = { title: "Dubai Fest", percent: 50, starts_at: "2026-10-25T20:00:00.000Z", ends_at: "2026-10-26T19:59:59.999Z", is_active: true, banner_url: "https://res.cloudinary.com/demo/image/upload/v1/offers/fest.webp" };
+
+  it("keeps running offers once, with a JPG banner and the last day in the company timezone", () => {
+    const offers = mapCurrentOffers([base, { ...base, _id: "copy" }, { ...base, title: "Old", ends_at: "2026-10-20T00:00:00.000Z" }, { ...base, title: "Off", is_active: false }], NOW, "Asia/Dubai");
+    expect(offers).toEqual([{ key: "dubai fest|2026-10-25T20:00:00.000Z|2026-10-26T19:59:59.999Z", title: "Dubai Fest", percent: 50, bannerUrl: "https://res.cloudinary.com/demo/image/upload/v1/offers/fest.jpg", validUntil: "2026-10-26" }]);
   });
 });

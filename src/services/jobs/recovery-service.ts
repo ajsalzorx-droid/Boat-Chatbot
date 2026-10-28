@@ -6,6 +6,7 @@ import { getQueueConfig } from "@/lib/config/env";
 import { Conversation } from "@/models/conversation";
 import { Message } from "@/models/message";
 import { reapplyUnmatchedStatuses } from "@/services/webhooks/ingest-service";
+import { runOfferAlerts, type OfferAlertsReport } from "@/services/offers/offer-alerts-service";
 import { getSettings } from "@/services/settings/settings-service";
 
 import { findRecoverableJobs } from "./job-service";
@@ -19,6 +20,7 @@ import { dispatchJob, runJob } from "./queue";
  */
 
 export interface RecoveryReport {
+  offerAlerts: OfferAlertsReport | null;
   jobsRecovered: number;
   statusesReapplied: number;
   messagesDeleted: number;
@@ -42,8 +44,15 @@ export async function runRecovery(): Promise<RecoveryReport> {
   }
 
   const statusesReapplied = await reapplyUnmatchedStatuses();
+  let offerAlerts: OfferAlertsReport | null = null;
+  try {
+    offerAlerts = await runOfferAlerts();
+  } catch (error) {
+    // Recovery work above must not be lost to a problem with offers.
+    logger.error("recovery.offer_alerts_failed", { error });
+  }
   const retention = await enforceRetention();
-  const report = { jobsRecovered, statusesReapplied, ...retention };
+  const report = { jobsRecovered, statusesReapplied, ...retention, offerAlerts };
   logger.info("recovery.completed", { ...report });
   return report;
 }

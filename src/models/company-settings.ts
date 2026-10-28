@@ -75,6 +75,12 @@ export interface CompanySettingsDoc {
    * many minutes after the handover, the bot answers the customer's next message again. 0 = never.
    */
   handoffResumeMinutes: number;
+  /**
+   * Offer alerts: when a new offer goes live on the website, subscribed customers get it on
+   * WhatsApp through an approved Marketing template (image header = banner; body {{1}} title,
+   * {{2}} percent, {{3}} last day).
+   */
+  offerAlerts: { enabled: boolean; template: TemplateRef | null };
   /** Ready-made texts staff can insert when replying from the dashboard. */
   savedReplies: SavedReply[];
   createdAt: Date;
@@ -173,6 +179,13 @@ const companySettingsSchema = new Schema<CompanySettingsDoc>(
       pauseMinutes: { type: Number, min: 0, max: 1440, default: 30 },
     },
     handoffResumeMinutes: { type: Number, min: 0, max: 10080, default: 10 },
+    offerAlerts: {
+      enabled: { type: Boolean, default: false },
+      template: {
+        type: new Schema<TemplateRef>({ name: { type: String, trim: true, maxlength: 512 }, languageCode: { type: String, trim: true, maxlength: 15 } }, { _id: false }),
+        default: null,
+      },
+    },
     savedReplies: {
       type: [
         new Schema<SavedReply>(

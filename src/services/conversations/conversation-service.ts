@@ -237,6 +237,8 @@ export async function listConversations(filter: ConversationFilter): Promise<{ i
 export interface ConversationUpdate {
   status?: ConversationStatus | undefined;
   botEnabled?: boolean | undefined;
+  /** Staff record a customer's consent given outside WhatsApp, or remove it. */
+  offersOptIn?: boolean | undefined;
   assignedAgentId?: Types.ObjectId | null | undefined;
 }
 
@@ -259,6 +261,10 @@ export async function updateConversation(id: Types.ObjectId, update: Conversatio
     set.botEnabled = update.botEnabled;
     if (update.botEnabled) set.handoffRequestedAt = null;
   }
+  if (update.offersOptIn !== undefined) {
+    set.offersOptIn = update.offersOptIn;
+    if (update.offersOptIn) set.offersOptInAt = new Date();
+  }
   if (update.assignedAgentId !== undefined) set.assignedAgentId = update.assignedAgentId;
 
   const updated = await Conversation.findByIdAndUpdate(id, { $set: set }, { returnDocument: "after", runValidators: true, lean: true });
@@ -276,7 +282,16 @@ export async function requestHandoff(id: Types.ObjectId): Promise<void> {
 export async function setOptOut(id: Types.ObjectId, optedOut: boolean): Promise<void> {
   await Conversation.updateOne(
     { _id: id },
-    { $set: optedOut ? { optedOut: true, optedOutAt: new Date() } : { optedOut: false, optedInAt: new Date() } },
+    // STOP ends everything, offer alerts included; START alone does not resubscribe to offers.
+    { $set: optedOut ? { optedOut: true, optedOutAt: new Date(), offersOptIn: false } : { optedOut: false, optedInAt: new Date() } },
+  );
+}
+
+/** Subscribing to offers is an explicit opt-in, so it also lifts an earlier STOP. */
+export async function setOfferAlerts(id: Types.ObjectId, subscribed: boolean): Promise<void> {
+  await Conversation.updateOne(
+    { _id: id },
+    { $set: subscribed ? { offersOptIn: true, offersOptInAt: new Date(), optedOut: false, optedInAt: new Date() } : { offersOptIn: false } },
   );
 }
 

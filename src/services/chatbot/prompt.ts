@@ -53,6 +53,7 @@ export function buildSystemPrompt(
       faqs.length > 0 ? `FAQs:\n${faqs.map((faq) => `Q: ${faq.question}\nA: ${faq.answer}`).join("\n\n")}` : "FAQs: none provided",
       products.length > 0 ? `Products and services:\n${products.map(productLine).join("\n")}` : "Products and services: none provided",
       products.length > 0 && !products.some((product) => product.offer) && "Current offers: none at the moment.",
+      settings.offerAlertsKeyword && `Offer alerts: customers can reply ${settings.offerAlertsKeyword} to get new offers on WhatsApp (mention this when they ask about offers or deals).`,
     ]
       .filter(Boolean)
       .join("\n"),

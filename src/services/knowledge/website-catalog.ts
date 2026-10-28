@@ -30,7 +30,9 @@ export interface WebsiteDailyCatch {
 }
 
 export interface WebsiteOffer {
+  _id?: unknown;
   title?: unknown;
+  banner_url?: unknown;
   percent?: unknown;
   scope?: unknown;
   categories?: unknown;
@@ -175,4 +177,29 @@ export function mapWebsiteCatalog(input: WebsiteCatalogInput): KnowledgeProduct[
   }
 
   return [...entries.values()].map(({ product, ids, category }) => ({ ...product, offer: offerFor(offers, ids, category, product.price) }));
+}
+
+/** A website offer running now, as announced to subscribers. */
+export interface CurrentOffer {
+  /** Same title and period = same offer (the website sometimes stores an offer twice). */
+  key: string;
+  title: string;
+  percent: number;
+  bannerUrl: string | null;
+  /** Last day, in the company timezone. */
+  validUntil: string;
+}
+
+export function mapCurrentOffers(offers: WebsiteOffer[], now: Date, timeZone: string): CurrentOffer[] {
+  const result = new Map<string, CurrentOffer>();
+  for (const offer of offers) {
+    const starts = date(offer.starts_at);
+    const ends = date(offer.ends_at);
+    const percent = typeof offer.percent === "number" ? offer.percent : NaN;
+    const title = str(offer.title, 200);
+    if (offer.is_active !== true || !ends || ends < now || (starts && starts > now) || !(percent > 0 && percent < 100) || !title) continue;
+    const key = `${normalizeItemName(title)}|${starts?.toISOString() ?? ""}|${ends.toISOString()}`;
+    if (!result.has(key)) result.set(key, { key, title, percent, bannerUrl: image(offer.banner_url), validUntil: dayInZone(ends, timeZone) });
+  }
+  return [...result.values()];
 }

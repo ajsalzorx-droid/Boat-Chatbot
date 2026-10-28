@@ -2,6 +2,7 @@ import { logger } from "@/lib/logging/logger";
 import { AiProviderError, type AiProvider } from "@/providers/ai/types";
 
 import { isOpenNow, zonedNow } from "./business-hours";
+import { offerAlertsHint } from "./offer-alerts";
 import { buildMessages, buildSystemPrompt, checkModelOutput } from "./prompt";
 import {
   contactReply,
@@ -89,7 +90,10 @@ function ruleCandidate(input: ChatbotInput, knowledge: Knowledge, language: Lang
   if (intent === "offers") {
     // A specific product ("any offer on kingfish?") is answered by the product match below.
     const named = rankProducts(input.text, knowledge.products).some((entry) => entry.score >= PRODUCT_CONFIDENCE);
-    if (!named) return { candidate: { text: offersReply(knowledge.products, language), intent, source: "product" }, confident: true };
+    if (!named) {
+      const hint = settings.offerAlertsKeyword ? `\n\n${offerAlertsHint(settings.offerAlertsKeyword, language)}` : "";
+      return { candidate: { text: `${offersReply(knowledge.products, language)}${hint}`, intent, source: "product" }, confident: true };
+    }
   }
 
   const bestFaq = rankFaqs(input.text, knowledge.faqs)[0];

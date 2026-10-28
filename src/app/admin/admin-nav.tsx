@@ -19,6 +19,7 @@ const ITEMS: NavItem[] = [
   { href: "/admin/conversations", label: "Conversations" },
   { href: "/admin/faqs", label: "FAQs", adminOnly: true },
   { href: "/admin/products", label: "Products & services", adminOnly: true },
+  { href: "/admin/offers", label: "Offer alerts", adminOnly: true },
   { href: "/admin/settings", label: "Settings", adminOnly: true },
   { href: "/admin/health", label: "System health", adminOnly: true },
   { href: "/admin/whatsapp", label: "WhatsApp connection", adminOnly: true, ownerOnly: true },

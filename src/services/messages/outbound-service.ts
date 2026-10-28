@@ -43,7 +43,7 @@ export interface OutboundDraft {
   conversation: ConversationDoc;
   sender: MessageSender;
   text?: string;
-  template?: { name: string; languageCode: string };
+  template?: { name: string; languageCode: string; headerImageUrl?: string | null; bodyParameters?: string[] };
   image?: { url: string; caption: string };
   agentId?: Types.ObjectId | null;
   botReplyTo?: string | null;
@@ -266,4 +266,26 @@ export async function retryOutboundMessage(id: Types.ObjectId, options: { accept
 
   await Message.updateOne({ _id: id, status: message.status }, { $set: { status: "pending", error: null } });
   return deliverOutboundMessage(id);
+}
+
+/**
+ * Job handler for queued outbound messages (offer alerts). The customer may have unsubscribed
+ * between queueing and sending, so consent is checked again right before the send.
+ */
+export async function deliverQueuedOutbound(messageId: Types.ObjectId): Promise<"sent" | "already_handled" | "skipped_unsubscribed"> {
+  await connectToDatabase();
+  const message = await Message.findById(messageId).lean();
+  if (!message || message.direction !== "outbound") throw new Error("Queued outbound message not found");
+  if (message.status !== "pending") return "already_handled";
+
+  const conversation = await Conversation.findById(message.conversationId).lean();
+  if (!conversation || conversation.optedOut || !conversation.offersOptIn) {
+    await Message.updateOne(
+      { _id: message._id, status: "pending" },
+      { $set: { status: "failed", error: { code: "UNSUBSCRIBED", title: "Customer is no longer subscribed to offers", details: null }, "statusTimestamps.failedAt": new Date() } },
+    );
+    return "skipped_unsubscribed";
+  }
+  await deliverOutboundMessage(message._id);
+  return "sent";
 }

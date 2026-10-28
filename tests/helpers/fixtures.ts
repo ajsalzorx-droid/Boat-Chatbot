@@ -159,9 +159,14 @@ export class FakeSender implements ChannelSender {
     return Promise.resolve({ kind: "sent", messageId: `wamid.OUT.${this.counter}` });
   }
 
-  sendTemplate(recipient: { waId: string | null }, template: { name: string }): Promise<SendOutcome> {
+  sendTemplate(recipient: { waId: string | null }, template: { name: string; headerImageUrl?: string | null; bodyParameters?: string[] }): Promise<SendOutcome> {
     if (this.failWith) return Promise.reject(this.failWith);
-    this.sent.push({ to: recipient.waId, body: null, template: template.name });
+    this.sent.push({
+      to: recipient.waId,
+      body: template.bodyParameters?.join(" | ") ?? null,
+      template: template.name,
+      ...(template.headerImageUrl ? { image: template.headerImageUrl } : {}),
+    });
     this.counter += 1;
     return Promise.resolve({ kind: "sent", messageId: `wamid.OUT.${this.counter}` });
   }

@@ -9,12 +9,15 @@ import { isAppError } from "@/lib/errors/app-error";
 import { logger } from "@/lib/logging/logger";
 import type { JobType, ProcessingJobDoc } from "@/models/processing-job";
 
+import { deliverQueuedOutbound } from "@/services/messages/outbound-service";
+
 import { processInboundMessage } from "./inbound-processor";
 import { claimJob, completeJob, failJob, type JobFailure } from "./job-service";
 
 /** One handler per job type. */
 const HANDLERS: Record<JobType, (job: ProcessingJobDoc) => Promise<string>> = {
   inbound_message: (job) => processInboundMessage(job.payload.messageId),
+  outbound_message: (job) => deliverQueuedOutbound(job.payload.messageId),
 };
 
 /**

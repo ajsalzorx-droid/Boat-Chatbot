@@ -64,6 +64,16 @@ Create a **Utility** template in WhatsApp Manager → Message templates (for exa
 **Admin → Settings → WhatsApp messaging rules**. The app checks the approval status with Meta
 before sending.
 
+**Offer alerts** (new website offers sent to subscribed customers): create a **Marketing**
+template with an **Image** header and a body with three variables, e.g.
+`🎉 {{1}} is here! Enjoy {{2}}% off until {{3}}. Reply here to know more.`
+({{1}} title, {{2}} percent, {{3}} last day), plus a **Marketing opt-out** button. After approval,
+enter its name and language under **Admin → Settings → Offer alerts** and switch them on.
+Customers subscribe by sending `OFFERS ON` and stop with `OFFERS OFF`, `STOP` or the opt-out
+button. New offers are picked up by the 5-minute `/api/cron/recover` run (or **Admin → Offer
+alerts → Check now**) and each offer is sent once per customer. Marketing templates are charged
+per message by Meta.
+
 ### 1.7 Coexistence: WhatsApp Business app and the bot on the same number
 Staff keep the WhatsApp Business app on the phone; the bot answers through the Cloud API on the same
 number. Messages staff send from the app arrive as `smb_message_echoes` webhooks and appear in the

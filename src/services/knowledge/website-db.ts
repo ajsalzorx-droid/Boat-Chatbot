@@ -7,7 +7,7 @@ import { logger } from "@/lib/logging/logger";
 import type { KnowledgeProduct } from "@/services/chatbot/types";
 import { getSettings } from "@/services/settings/settings-service";
 
-import { mapWebsiteCatalog, type WebsiteDailyCatch, type WebsiteMenuItem, type WebsiteOffer } from "./website-catalog";
+import { mapCurrentOffers, mapWebsiteCatalog, type CurrentOffer, type WebsiteDailyCatch, type WebsiteMenuItem, type WebsiteOffer } from "./website-catalog";
 
 /**
  * Live, read-only access to the company website's own database (WEBSITE_DB_URI), so prices and
@@ -79,5 +79,26 @@ export async function loadWebsiteProducts(): Promise<KnowledgeProduct[] | null> 
     const stale = cache.products && Date.now() - cache.loadedAt < STALE_LIMIT_MS ? cache.products : null;
     logger.warn("website_db.load_failed", { error, usingStaleCache: stale !== null });
     return stale;
+  }
+}
+
+/** Offers running now on the website, or null when the website database is not configured or not reachable. */
+export async function loadCurrentWebsiteOffers(): Promise<CurrentOffer[] | null> {
+  let config;
+  try {
+    config = getWebsiteDbConfig();
+  } catch {
+    return null;
+  }
+  if (!config) return null;
+  try {
+    const [connection, settings] = await Promise.all([connect(config.uri, config.dbName ?? DEFAULT_DB_NAME), getSettings()]);
+    const db = connection.db;
+    if (!db) throw new Error("Website database handle unavailable");
+    const offers = await db.collection<WebsiteOffer>("offers").find({ is_active: true }).limit(100).toArray();
+    return mapCurrentOffers(offers, new Date(), settings.timezone);
+  } catch (error) {
+    logger.warn("website_db.offers_load_failed", { error });
+    return null;
   }
 }

@@ -227,6 +227,42 @@ export function SettingsClient() {
           </div>
         </Section>
 
+        <Section
+          title="Offer alerts"
+          description="When a new offer goes live on the website, customers who replied OFFERS ON receive its banner on WhatsApp. Needs an approved Marketing template."
+        >
+          <Checkbox
+            label="Send new website offers to subscribed customers automatically"
+            checked={settings.offerAlerts.enabled}
+            onChange={(enabled) => set("offerAlerts", { ...settings.offerAlerts, enabled })}
+          />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Template name" hint="Exactly as in WhatsApp Manager, e.g. new_offer_alert">
+              <Input
+                value={settings.offerAlerts.template?.name ?? ""}
+                onChange={(event) =>
+                  set("offerAlerts", {
+                    ...settings.offerAlerts,
+                    template: event.target.value.trim() ? { name: event.target.value, languageCode: settings.offerAlerts.template?.languageCode ?? "en" } : null,
+                  })
+                }
+              />
+            </Field>
+            <Field label="Template language code" hint="e.g. en or en_US">
+              <Input
+                value={settings.offerAlerts.template?.languageCode ?? "en"}
+                disabled={!settings.offerAlerts.template}
+                onChange={(event) =>
+                  settings.offerAlerts.template && set("offerAlerts", { ...settings.offerAlerts, template: { ...settings.offerAlerts.template, languageCode: event.target.value } })
+                }
+              />
+            </Field>
+          </div>
+          <p className="text-xs text-slate-500">
+            Create it in WhatsApp Manager → Message templates: category <b>Marketing</b>, header <b>Image</b>, body with three variables, for example: “🎉 {"{{1}}"} is here! Enjoy {"{{2}}"}% off until {"{{3}}"}. Reply here to know more.” Add a <b>Marketing opt-out</b> button. {"{{1}}"} = offer title, {"{{2}}"} = percent, {"{{3}}"} = last day.
+          </p>
+        </Section>
+
         <Section title="Saved replies" description="Ready-made texts staff can insert when replying from a conversation.">
           {settings.savedReplies.map((reply, index) => (
             <div key={index} className="space-y-2 rounded-lg border border-slate-200 p-3 dark:border-slate-800">

@@ -14,11 +14,18 @@ export interface Recipient {
   userId: string | null;
 }
 
+export interface TemplateSend {
+  name: string;
+  languageCode: string;
+  headerImageUrl?: string | null | undefined;
+  bodyParameters?: string[] | undefined;
+}
+
 export type SendOutcome = { kind: "sent"; messageId: string } | { kind: "simulated" };
 
 export interface ChannelSender {
   sendText(recipient: Recipient, body: string, replyToMessageId: string | null): Promise<SendOutcome>;
-  sendTemplate(recipient: Recipient, template: { name: string; languageCode: string }): Promise<SendOutcome>;
+  sendTemplate(recipient: Recipient, template: TemplateSend): Promise<SendOutcome>;
   sendImage(recipient: Recipient, image: { url: string; caption: string }): Promise<SendOutcome>;
 }
 
@@ -45,8 +52,14 @@ class WhatsAppSender implements ChannelSender {
     return { kind: "sent", messageId: result.messageId };
   }
 
-  async sendTemplate(recipient: Recipient, template: { name: string; languageCode: string }): Promise<SendOutcome> {
-    const result = await this.getClient().sendTemplate({ to: requireWaId(recipient), ...template });
+  async sendTemplate(recipient: Recipient, template: TemplateSend): Promise<SendOutcome> {
+    const result = await this.getClient().sendTemplate({
+      to: requireWaId(recipient),
+      name: template.name,
+      languageCode: template.languageCode,
+      headerImageUrl: template.headerImageUrl,
+      bodyParameters: template.bodyParameters,
+    });
     return { kind: "sent", messageId: result.messageId };
   }
 

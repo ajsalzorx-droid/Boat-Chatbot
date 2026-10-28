@@ -35,6 +35,9 @@ export interface ConversationDoc {
   optedOut: boolean;
   optedOutAt: Date | null;
   optedInAt: Date | null;
+  /** The customer asked for offer alerts (marketing templates); STOP or OFFERS OFF clears it. */
+  offersOptIn: boolean;
+  offersOptInAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,6 +62,8 @@ const conversationSchema = new Schema<ConversationDoc>(
     optedOut: { type: Boolean, default: false },
     optedOutAt: { type: Date, default: null },
     optedInAt: { type: Date, default: null },
+    offersOptIn: { type: Boolean, default: false },
+    offersOptInAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

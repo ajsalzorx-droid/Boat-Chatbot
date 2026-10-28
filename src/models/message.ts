@@ -51,7 +51,7 @@ export interface MessageDoc {
   agentId: Types.ObjectId | null;
   type: MessageType;
   text: string | null;
-  template: { name: string; languageCode: string } | null;
+  template: { name: string; languageCode: string; headerImageUrl?: string | null; bodyParameters?: string[] } | null;
   /** Outbound image: a public https link WhatsApp fetches, and its caption. */
   media: { url: string; caption: string } | null;
   /** Inbound types the bot does not handle (image, audio, …). */
@@ -87,7 +87,7 @@ const messageSchema = new Schema<MessageDoc>(
     type: { type: String, enum: MESSAGE_TYPES, required: true },
     text: { type: String, default: null, maxlength: 4096 },
     template: {
-      type: new Schema({ name: String, languageCode: String }, { _id: false }),
+      type: new Schema({ name: String, languageCode: String, headerImageUrl: { type: String, default: null }, bodyParameters: { type: [String], default: undefined } }, { _id: false }),
       default: null,
     },
     media: {

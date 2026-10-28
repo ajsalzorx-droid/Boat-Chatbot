@@ -43,6 +43,7 @@ export const conversationUpdateSchema = z
   .object({
     status: z.enum(CONVERSATION_STATUSES).optional(),
     botEnabled: z.boolean().optional(),
+    offersOptIn: z.boolean().optional(),
     assignedAgentId: z.union([objectIdSchema, z.null()]).optional(),
   })
   .refine((value) => Object.keys(value).length > 0, "Nothing to update");
@@ -140,6 +141,12 @@ export const settingsSchema = z.object({
     pauseMinutes: z.number().int().min(0).max(1440),
   }),
   handoffResumeMinutes: z.number().int().min(0).max(10080),
+  offerAlerts: z.object({
+    enabled: z.boolean(),
+    template: z
+      .object({ name: z.string().trim().regex(/^[a-z0-9_]{1,512}$/, "Lowercase letters, digits and _ only"), languageCode: z.string().trim().regex(/^[a-z]{2,3}(_[A-Z]{2})?$/, "e.g. en or en_US") })
+      .nullable(),
+  }),
   savedReplies: z.array(z.object({ title: z.string().trim().min(1).max(60), text: z.string().trim().min(1).max(4096) })).max(50),
 });
 

@@ -4,13 +4,14 @@ import { CompanySettings } from "./company-settings";
 import { Conversation } from "./conversation";
 import { Faq } from "./faq";
 import { Message } from "./message";
+import { OfferBroadcast } from "./offer-broadcast";
 import { ProcessingJob } from "./processing-job";
 import { Product } from "./product";
 import { RateLimit } from "./rate-limit";
 import { WebhookEvent } from "./webhook-event";
 import { WhatsAppConnection } from "./whatsapp-connection";
 
-export { AdminSession, AdminUser, CompanySettings, Conversation, Faq, Message, ProcessingJob, Product, RateLimit, WebhookEvent, WhatsAppConnection };
+export { AdminSession, AdminUser, CompanySettings, Conversation, Faq, Message, OfferBroadcast, ProcessingJob, Product, RateLimit, WebhookEvent, WhatsAppConnection };
 
 /** The subset of the Mongoose model API that index maintenance needs. */
 export interface IndexedModel {
@@ -38,6 +39,7 @@ export function getRegisteredModels(): readonly IndexedModel[] {
     AdminSession,
     WebhookEvent,
     ProcessingJob,
+    OfferBroadcast,
     RateLimit,
     WhatsAppConnection,
   ];

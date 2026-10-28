@@ -36,6 +36,8 @@ const messageSchema = z.object({
   timestamp: unixSeconds,
   type: z.string().min(1).max(50),
   text: z.object({ body: z.string().max(65_536) }).optional(),
+  /** Quick-reply button on a template, e.g. the marketing "Stop promotions" button. */
+  button: z.object({ text: z.string().max(256) }).optional(),
   context: z.object({ id: z.string().max(256).optional() }).optional(),
 });
 
@@ -126,8 +128,11 @@ function isDeliveryStatus(value: string): value is DeliveryStatus {
   return (DELIVERY_STATUSES as readonly string[]).includes(value);
 }
 
-function toContent(type: string, text: { body: string } | undefined): InboundContent {
-  return type === "text" && text ? { type: "text", body: text.body } : { type: "unsupported", originalType: type };
+/** A tapped template button is handled like the customer typing its label. */
+function toContent(type: string, text: { body: string } | undefined, button?: { text: string }): InboundContent {
+  if (type === "text" && text) return { type: "text", body: text.body };
+  if (type === "button" && button) return { type: "text", body: button.text };
+  return { type: "unsupported", originalType: type };
 }
 
 function resolveCustomer(
@@ -159,7 +164,7 @@ function parseMessage(
   const customer = resolveCustomer(message, contacts);
   if (!customer) return { kind: "unsupported", field: "messages", reason: "message without sender" };
 
-  const content = toContent(message.type, message.text);
+  const content = toContent(message.type, message.text, message.button);
 
   return {
     kind: "message",

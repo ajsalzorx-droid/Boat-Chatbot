@@ -191,17 +191,21 @@ export class WhatsAppClient {
     to: string;
     name: string;
     languageCode: string;
-    bodyParameters?: string[];
+    bodyParameters?: string[] | undefined;
+    /** For templates with an image header. */
+    headerImageUrl?: string | null | undefined;
   }): Promise<SendResult> {
     const parameters = input.bodyParameters ?? [];
+    const components = [
+      ...(input.headerImageUrl ? [{ type: "header", parameters: [{ type: "image", image: { link: input.headerImageUrl } }] }] : []),
+      ...(parameters.length > 0 ? [{ type: "body", parameters: parameters.map((text) => ({ type: "text", text })) }] : []),
+    ];
     return this.sendMessage(input.to, {
       type: "template",
       template: {
         name: input.name,
         language: { code: input.languageCode },
-        ...(parameters.length > 0
-          ? { components: [{ type: "body", parameters: parameters.map((text) => ({ type: "text", text })) }] }
-          : {}),
+        ...(components.length > 0 ? { components } : {}),
       },
     });
   }

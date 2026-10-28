@@ -2,6 +2,7 @@ import "server-only";
 
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { CompanySettings, type CompanySettingsDoc } from "@/models/company-settings";
+import { OFFER_ALERTS_ON_KEYWORD } from "@/services/chatbot/offer-alerts";
 import type { BotSettings } from "@/services/chatbot/types";
 
 /** Company settings: a single document, created with safe defaults on first use. */
@@ -59,17 +60,19 @@ export const DEFAULT_SETTINGS: SettingsData = {
   retention: { messageRetentionDays: 365 },
   humanFirst: { enabled: false, waitSeconds: 15, pauseMinutes: 30 },
   handoffResumeMinutes: 10,
+  offerAlerts: { enabled: false, template: null },
   savedReplies: [],
 };
 
 /** Documents created before a setting existed lack it; lean reads do not apply schema defaults. */
 function withDefaults(settings: CompanySettingsDoc): CompanySettingsDoc {
-  const stored: Partial<Pick<CompanySettingsDoc, "humanFirst" | "handoffResumeMinutes" | "savedReplies">> = settings;
+  const stored: Partial<Pick<CompanySettingsDoc, "humanFirst" | "handoffResumeMinutes" | "offerAlerts" | "savedReplies">> = settings;
   return {
     ...settings,
     ai: { ...DEFAULT_SETTINGS.ai, ...settings.ai },
     humanFirst: stored.humanFirst ?? DEFAULT_SETTINGS.humanFirst,
     handoffResumeMinutes: stored.handoffResumeMinutes ?? DEFAULT_SETTINGS.handoffResumeMinutes,
+    offerAlerts: stored.offerAlerts ?? DEFAULT_SETTINGS.offerAlerts,
     savedReplies: stored.savedReplies ?? DEFAULT_SETTINGS.savedReplies,
   };
 }
@@ -119,5 +122,6 @@ export function toBotSettings(settings: CompanySettingsDoc): BotSettings {
     maxResponseLength: settings.maxResponseLength,
     aiEnabled: settings.ai.enabled,
     aiFirst: settings.ai.aiFirst,
+    offerAlertsKeyword: settings.offerAlerts.enabled ? OFFER_ALERTS_ON_KEYWORD : null,
   };
 }

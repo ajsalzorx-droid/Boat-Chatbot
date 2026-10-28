@@ -2,7 +2,8 @@ import { Schema, type Types } from "mongoose";
 
 import { defineModel } from "./define-model";
 
-export const JOB_TYPES = ["inbound_message"] as const;
+/** inbound_message: decide and send the bot reply. outbound_message: deliver a queued outbound message (offer alerts). */
+export const JOB_TYPES = ["inbound_message", "outbound_message"] as const;
 export type JobType = (typeof JOB_TYPES)[number];
 
 /**

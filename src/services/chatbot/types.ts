@@ -68,6 +68,8 @@ export interface BotSettings {
   aiEnabled: boolean;
   /** AI writes every answer from the trusted data; rule answers become the fallback. */
   aiFirst: boolean;
+  /** Set while offer alerts are on: the keyword customers send to subscribe. */
+  offerAlertsKeyword?: string | null;
 }
 
 export interface HistoryTurn {

@@ -11,9 +11,10 @@ import { getAiProvider } from "@/providers/ai";
 import { generateReply } from "@/services/chatbot/engine";
 import { pick } from "@/services/chatbot/rules";
 import { containsPhrase, detectLanguage, normalize } from "@/services/chatbot/text";
+import { offerAlertsCommand, offerAlertsReply } from "@/services/chatbot/offer-alerts";
 import { productImagesForReply } from "@/services/chatbot/product-images";
 import type { ChatbotReply, HistoryTurn, KnowledgeProduct } from "@/services/chatbot/types";
-import { requestHandoff, setOptOut } from "@/services/conversations/conversation-service";
+import { requestHandoff, setOfferAlerts, setOptOut } from "@/services/conversations/conversation-service";
 import { loadKnowledge } from "@/services/knowledge/knowledge-service";
 import { createOutboundMessage, deliverOutboundMessage, RetryableDeliveryError } from "@/services/messages/outbound-service";
 import { getSettings, toBotSettings } from "@/services/settings/settings-service";
@@ -159,6 +160,20 @@ export async function processInboundMessage(messageId: Types.ObjectId): Promise<
       text: pick(settings.messages.optIn, language),
       botReplyTo: replyKey,
       botMeta: { source: "policy", intent: "opt_in", aiModel: null },
+    });
+    return deliver(message);
+  }
+
+  // Offer alerts: an explicit subscribe/unsubscribe, honoured even when the bot is paused.
+  const offersCommand = inbound.type === "text" ? offerAlertsCommand(normalize(text)) : null;
+  if (offersCommand === "off" || (offersCommand === "on" && settings.offerAlerts.enabled)) {
+    await setOfferAlerts(conversation._id, offersCommand === "on");
+    const { message } = await createOutboundMessage({
+      conversation: { ...conversation, optedOut: offersCommand === "on" ? false : conversation.optedOut },
+      sender: "system",
+      text: offerAlertsReply(offersCommand, language),
+      botReplyTo: replyKey,
+      botMeta: { source: "policy", intent: `offers_${offersCommand}`, aiModel: null },
     });
     return deliver(message);
   }
