@@ -12,6 +12,11 @@ interface NavItem {
   adminOnly?: boolean;
   ownerOnly?: boolean;
   simulatorOnly?: boolean;
+  /**
+   * Load as a full page: the page has its own Content-Security-Policy (Meta's SDK), which the
+   * browser only applies to a fresh document, not to client-side navigation.
+   */
+  fullReload?: boolean;
 }
 
 const ITEMS: NavItem[] = [
@@ -22,7 +27,7 @@ const ITEMS: NavItem[] = [
   { href: "/admin/offers", label: "Offer alerts", adminOnly: true },
   { href: "/admin/settings", label: "Settings", adminOnly: true },
   { href: "/admin/health", label: "System health", adminOnly: true },
-  { href: "/admin/whatsapp", label: "WhatsApp connection", adminOnly: true, ownerOnly: true },
+  { href: "/admin/whatsapp", label: "WhatsApp connection", adminOnly: true, ownerOnly: true, fullReload: true },
   { href: "/admin/simulator", label: "Simulator", adminOnly: true, simulatorOnly: true },
   { href: "/admin/account", label: "My account" },
 ];
@@ -60,17 +65,17 @@ export function AdminNav({
       <nav className={`${open ? "block" : "hidden"} px-2 pb-4 md:block`}>
         {items.map((item) => {
           const active = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className={`block rounded-lg px-3 py-2 text-sm ${
-                active
-                  ? "bg-brand-600/10 font-medium text-brand-700 dark:text-emerald-300"
-                  : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-              }`}
-            >
+          const className = `block rounded-lg px-3 py-2 text-sm ${
+            active
+              ? "bg-brand-600/10 font-medium text-brand-700 dark:text-emerald-300"
+              : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+          }`;
+          return item.fullReload ? (
+            <a key={item.href} href={item.href} className={className}>
+              {item.label}
+            </a>
+          ) : (
+            <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className={className}>
               {item.label}
             </Link>
           );

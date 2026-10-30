@@ -63,7 +63,7 @@ function loadSdk(appId: string, version: string): Promise<FacebookSdk> {
     script.src = SDK_URL;
     script.async = true;
     script.crossOrigin = "anonymous";
-    script.onerror = () => reject(new Error("Could not load the Facebook SDK. Check the browser's ad or tracking blocker."));
+    script.onerror = () => reject(new Error("Could not load the Facebook SDK. Reload this page (F5) and try again; if it still fails, check the browser's ad or tracking blocker."));
     document.body.appendChild(script);
   });
 }
