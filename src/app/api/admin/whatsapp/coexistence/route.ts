@@ -3,7 +3,7 @@ import { getEmbeddedSignupConfig, getWhatsAppConfig } from "@/lib/config/env";
 import { json, readJson } from "@/lib/http/api";
 import { coexistenceOnboardingSchema } from "@/lib/validation/admin";
 import type { WhatsAppConnectionDoc } from "@/models/whatsapp-connection";
-import { completeCoexistenceOnboarding, getCoexistenceConnection } from "@/services/whatsapp/coexistence-service";
+import { completeCoexistenceOnboarding, getCoexistenceConnection, startBusinessAppSync, SYNC_WINDOW_MS } from "@/services/whatsapp/coexistence-service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,6 +16,7 @@ function toConnectionDto(connection: WhatsAppConnectionDoc | null) {
     businessAccountId: connection.businessAccountId,
     phoneNumberId: connection.phoneNumberId,
     connectedAt: connection.connectedAt.toISOString(),
+    syncDeadline: new Date(connection.connectedAt.getTime() + SYNC_WINDOW_MS).toISOString(),
     subscribed: connection.subscribed,
     contactsSync: sync(connection.contactsSync),
     historySync: sync(connection.historySync),
@@ -39,6 +40,12 @@ export const GET = adminRoute("owner", async () => {
     active: activeIds(),
     connection: toConnectionDto(await getCoexistenceConnection()),
   });
+});
+
+/** Starts the one-time contacts and chat-history import for the connected number. Owner only. */
+export const PUT = adminRoute("owner", async () => {
+  const connection = await startBusinessAppSync();
+  return json({ connection: toConnectionDto(connection), active: activeIds() });
 });
 
 /** Finishes onboarding after the Embedded Signup popup reported success. Owner only. */

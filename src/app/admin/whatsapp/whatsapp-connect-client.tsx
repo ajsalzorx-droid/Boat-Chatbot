@@ -16,6 +16,8 @@ interface ConnectionDto {
   businessAccountId: string;
   phoneNumberId: string;
   connectedAt: string;
+  /** Meta allows the one-time history import until then. */
+  syncDeadline: string;
   subscribed: boolean;
   contactsSync: SyncDto;
   historySync: SyncDto;
@@ -92,7 +94,7 @@ export function WhatsAppConnectClient() {
     const body = { code: code.current, ...ids.current };
     code.current = null;
     ids.current = null;
-    setProgress("Connecting the account and requesting the chat history…");
+    setProgress("Connecting the account…");
     try {
       await api("/api/admin/whatsapp/coexistence", { method: "POST", body });
       setProgress(null);
@@ -159,6 +161,22 @@ export function WhatsAppConnectClient() {
   const connection = status?.connection ?? null;
   const active = status?.active ?? null;
   const idsMatch = connection && active && connection.phoneNumberId === active.phoneNumberId && connection.businessAccountId === active.businessAccountId;
+  // The server enforces Meta's 24-hour limit and explains when it has passed.
+  const canStartSync = Boolean(idsMatch && !connection.historySync.requestedAt);
+
+  async function startSync() {
+    setBusy(true);
+    setError(null);
+    try {
+      await api("/api/admin/whatsapp/coexistence", { method: "PUT" });
+      setProgress("Chat history import started. Keep the WhatsApp Business app open on the phone while it syncs.");
+      await load();
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="max-w-3xl space-y-4">
@@ -207,6 +225,19 @@ export function WhatsAppConnectClient() {
           <p className="text-sm">Webhooks subscribed: {connection.subscribed ? "yes" : <span className="text-red-600">no</span>}</p>
           <SyncLine label="Contacts sync" sync={connection.contactsSync} />
           <SyncLine label="Chat history sync" sync={connection.historySync} />
+          {canStartSync ? (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <Button disabled={busy} onClick={() => void startSync()}>
+                Start chat history import
+              </Button>
+              <p className="text-xs text-slate-500">Imports contacts and up to 6 months of chats once. Available until {formatDateTime(connection.syncDeadline)}.</p>
+            </div>
+          ) : null}
+          {!idsMatch && !connection.historySync.requestedAt ? (
+            <p className="mt-3 text-sm text-amber-700 dark:text-amber-400">
+              The chat history import starts after the server uses this number (below). Do it before {formatDateTime(connection.syncDeadline)}.
+            </p>
+          ) : null}
           {!idsMatch ? (
             <div className="mt-3 rounded-lg bg-slate-100 p-3 text-sm dark:bg-slate-900">
               <p className="mb-2">Set these on the server and restart the app so the bot uses this number:</p>
