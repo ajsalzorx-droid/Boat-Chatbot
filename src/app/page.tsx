@@ -1,5 +1,5 @@
 import Link from "next/link";
-console.log("sd");
+
 
 export default function HomePage() {
   return (
